@@ -2,12 +2,15 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/sammy9867/daily-diary/backend/user/controller/auth"
+	"github.com/sammy9867/daily-diary/backend/user/controller/middleware"
 	"github.com/sammy9867/daily-diary/backend/user/controller/util"
 	"github.com/sammy9867/daily-diary/backend/user/model"
 	"github.com/sammy9867/daily-diary/backend/user/usecase"
@@ -17,21 +20,44 @@ type UserController struct {
 	userUC usecase.UserUseCase
 }
 
+// NewUserController creates an object of UserController
 func NewUserController(router *mux.Router, us usecase.UserUseCase) {
 	controller := &UserController{
 		userUC: us,
 	}
 
-	router.HandleFunc("/users", controller.CreateUser).Methods("POST")
-	router.HandleFunc("/users/{id}", controller.UpdateUser).Methods("PUT")    // User is not updated, returns id 0 for non-existing user
-	router.HandleFunc("/users/{id}", controller.DeleteUser).Methods("DELETE") //  returns id 0 after deletion
-	router.HandleFunc("/users/{id}", controller.GetUserByID).Methods("GET")   // Returns Empty User when id doesnt exist
-	router.HandleFunc("/users", controller.GetAllUsers).Methods("GET")        //  returns id 0 for non-existing user
+	router.HandleFunc("/login", middleware.SetMiddlewareJSON(controller.Login)).Methods("POST")
+
+	router.HandleFunc("/users", middleware.SetMiddlewareJSON(controller.CreateUser)).Methods("POST")
+	router.HandleFunc("/users/{id}", middleware.SetMiddlewareJSON(middleware.SetMiddlewareAuthentication(controller.UpdateUser))).Methods("PUT") // User is not updated, returns id 0 for non-existing user
+	router.HandleFunc("/users/{id}", middleware.SetMiddlewareAuthentication(controller.DeleteUser)).Methods("DELETE")                            //  returns id 0 after deletion
+	router.HandleFunc("/users/{id}", middleware.SetMiddlewareJSON(controller.GetUserByID)).Methods("GET")                                        // Returns Empty User when id doesnt exist
+	router.HandleFunc("/users", middleware.SetMiddlewareJSON(controller.GetAllUsers)).Methods("GET")                                             //  returns id 0 for non-existing user
+}
+
+func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		util.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+	user := model.User{}
+	err = json.Unmarshal(body, &user)
+	if err != nil {
+		util.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	token, err := uc.userUC.SignIn(user.Email, user.Password)
+	if err != nil {
+		util.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+	util.JSON(w, http.StatusOK, token)
 }
 
 func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "application/json")
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		util.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -55,7 +81,6 @@ func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	uid, err := strconv.ParseUint(vars["id"], 10, 64)
 	if err != nil {
@@ -74,6 +99,16 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenID, err := auth.ExtractTokenID(r)
+	if err != nil {
+		util.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+	if tokenID != uint64(uid) {
+		util.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
+		return
+	}
+
 	updatedUser, err := uc.userUC.UpdateUser(uint64(uid), &user)
 	if err != nil {
 		util.ERROR(w, http.StatusInternalServerError, err)
@@ -84,12 +119,21 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 
 	uid, err := strconv.ParseUint(vars["id"], 10, 64)
 	if err != nil {
 		util.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	tokenID, err := auth.ExtractTokenID(r)
+	if err != nil {
+		util.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+	if tokenID != 0 && tokenID != uint64(uid) {
+		util.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
 		return
 	}
 
@@ -104,7 +148,6 @@ func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 func (uc *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	uid, err := strconv.ParseUint(vars["id"], 10, 64)
 	if err != nil {

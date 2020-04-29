@@ -6,6 +6,7 @@ import (
 
 // UserRepository represents the users repository
 type UserRepository interface {
+	SignIn(email, password string) (string, error)
 	CreateUser(*model.User) (*model.User, error)
 	UpdateUser(uint64, *model.User) (*model.User, error)
 	DeleteUser(uid uint64) (int64, error)

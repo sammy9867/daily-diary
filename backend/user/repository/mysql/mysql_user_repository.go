@@ -2,10 +2,14 @@ package mysql
 
 import (
 	"errors"
+	"log"
+	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/sammy9867/daily-diary/backend/user/controller/auth"
 	"github.com/sammy9867/daily-diary/backend/user/model"
 	"github.com/sammy9867/daily-diary/backend/user/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type mysqlUserRepository struct {
@@ -18,11 +22,27 @@ func NewMysqlUserRepository(DB *gorm.DB) repository.UserRepository {
 	return &mysqlUserRepository{DB}
 }
 
-func (mysqlUserRepo *mysqlUserRepository) CreateUser(u *model.User) (*model.User, error) {
+func (mysqlUserRepo *mysqlUserRepository) SignIn(email, password string) (string, error) {
 
 	var err error
-	err = mysqlUserRepo.DB.Debug().Create(&u).Error
+
+	user := model.User{}
+
+	err = mysqlUserRepo.DB.Debug().Model(model.User{}).Where("email = ?", email).Take(&user).Error
 	if err != nil {
+		return "", err
+	}
+	err = model.VerifyPassword(user.Password, password)
+	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
+		return "", err
+	}
+	return auth.CreateToken(user.ID)
+}
+
+func (mysqlUserRepo *mysqlUserRepository) CreateUser(u *model.User) (*model.User, error) {
+
+	errr := mysqlUserRepo.DB.Debug().Create(&u).Error
+	if errr != nil {
 		return &model.User{}, nil
 	}
 
@@ -31,24 +51,29 @@ func (mysqlUserRepo *mysqlUserRepository) CreateUser(u *model.User) (*model.User
 
 func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *model.User) (*model.User, error) {
 
-	db := mysqlUserRepo.DB.Debug().Model(&model.User{}).Where("id = ?", uid).Take(&model.User{}).UpdateColumns(
+	err := u.BeforeSave()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db := mysqlUserRepo.DB.Debug().Model(&model.User{}).Where("id = ?", uid).UpdateColumns(
 		map[string]interface{}{
-			"password":   u.Password,
 			"username":   u.Username,
 			"email":      u.Email,
-			"updated_at": u.UpdatedAt,
+			"password":   u.Password,
+			"updated_at": time.Now(),
 		},
 	)
+
 	if db.Error != nil {
 		return &model.User{}, db.Error
 	}
 
-	// This is the display the updated user
-	err := mysqlUserRepo.DB.Debug().Model(&model.User{}).Where("id = ?", uid).Take(&u).Error
+	user, err := mysqlUserRepo.GetUserByID(uid)
 	if err != nil {
 		return &model.User{}, err
 	}
-	return u, nil
+	return user, nil
 }
 
 func (mysqlUserRepo *mysqlUserRepository) DeleteUser(uid uint64) (int64, error) {

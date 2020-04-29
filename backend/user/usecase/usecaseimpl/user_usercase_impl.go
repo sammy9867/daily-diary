@@ -15,6 +15,15 @@ func NewUserUseCase(ur repository.UserRepository) usecase.UserUseCase {
 	return &userUsecase{userRepo: ur}
 }
 
+func (userUC *userUsecase) SignIn(email, password string) (string, error) {
+	token, err := userUC.userRepo.SignIn(email, password)
+	if err != nil {
+		return "error signing in user", nil
+	}
+
+	return token, nil
+}
+
 func (userUC *userUsecase) CreateUser(u *model.User) (*model.User, error) {
 	createdUser, err := userUC.userRepo.CreateUser(u)
 	if err != nil {

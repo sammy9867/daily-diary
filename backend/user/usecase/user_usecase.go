@@ -6,6 +6,7 @@ import (
 
 // UserUseCase represents the users usecase
 type UserUseCase interface {
+	SignIn(email, password string) (string, error)
 	CreateUser(*model.User) (*model.User, error)
 	UpdateUser(uint64, *model.User) (*model.User, error)
 	DeleteUser(uint64) (int64, error)
