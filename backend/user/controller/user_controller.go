@@ -16,6 +16,7 @@ import (
 	"github.com/sammy9867/daily-diary/backend/user/usecase"
 )
 
+// UserController represents all the http request of the user
 type UserController struct {
 	userUC usecase.UserUseCase
 }
@@ -29,12 +30,13 @@ func NewUserController(router *mux.Router, us usecase.UserUseCase) {
 	router.HandleFunc("/login", middleware.SetMiddlewareJSON(controller.Login)).Methods("POST")
 
 	router.HandleFunc("/users", middleware.SetMiddlewareJSON(controller.CreateUser)).Methods("POST")
-	router.HandleFunc("/users/{id}", middleware.SetMiddlewareJSON(middleware.SetMiddlewareAuthentication(controller.UpdateUser))).Methods("PUT") // User is not updated, returns id 0 for non-existing user
-	router.HandleFunc("/users/{id}", middleware.SetMiddlewareAuthentication(controller.DeleteUser)).Methods("DELETE")                            //  returns id 0 after deletion
-	router.HandleFunc("/users/{id}", middleware.SetMiddlewareJSON(controller.GetUserByID)).Methods("GET")                                        // Returns Empty User when id doesnt exist
-	router.HandleFunc("/users", middleware.SetMiddlewareJSON(controller.GetAllUsers)).Methods("GET")                                             //  returns id 0 for non-existing user
+	router.HandleFunc("/users/{id}", middleware.SetMiddlewareJSON(middleware.SetMiddlewareAuthentication(controller.UpdateUser))).Methods("PUT")
+	router.HandleFunc("/users/{id}", middleware.SetMiddlewareAuthentication(controller.DeleteUser)).Methods("DELETE")
+	router.HandleFunc("/users/{id}", middleware.SetMiddlewareJSON(controller.GetUserByID)).Methods("GET")
+	router.HandleFunc("/users", middleware.SetMiddlewareJSON(controller.GetAllUsers)).Methods("GET")
 }
 
+// Login endpoint
 func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -48,14 +50,23 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := uc.userUC.SignIn(user.Email, user.Password)
+	util.Initialize(&user)
+	err = util.Validate(&user, "login")
 	if err != nil {
 		util.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	token, err := uc.userUC.SignIn(user.Email, user.Password)
+	if err != nil {
+		formattedError := util.FormatError(err.Error())
+		util.ERROR(w, http.StatusUnprocessableEntity, formattedError)
 		return
 	}
 	util.JSON(w, http.StatusOK, token)
 }
 
+// CreateUser endpoint is used to create a new user using usersname, email and password
 func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -68,10 +79,17 @@ func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 		util.ERROR(w, http.StatusUnprocessableEntity, err)
 		return
 	}
+	util.Initialize(&user)
+	err = util.Validate(&user, "")
+	if err != nil {
+		util.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
 
 	createdUser, err := uc.userUC.CreateUser(&user)
 	if err != nil {
-		util.ERROR(w, http.StatusInternalServerError, err)
+		formattedError := util.FormatError(err.Error())
+		util.ERROR(w, http.StatusInternalServerError, formattedError)
 		return
 	}
 
@@ -79,6 +97,7 @@ func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 	util.JSON(w, http.StatusCreated, createdUser)
 }
 
+// UpdateUser endpoint is used to update a user's credentials
 func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
@@ -99,13 +118,20 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenID, err := auth.ExtractTokenID(r)
+	tokenID, err := auth.ExtractTokenMetaData(r)
 	if err != nil {
 		util.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
 	}
 	if tokenID != uint64(uid) {
 		util.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
+		return
+	}
+
+	util.Initialize(&user)
+	err = util.Validate(&user, "update")
+	if err != nil {
+		util.ERROR(w, http.StatusUnprocessableEntity, err)
 		return
 	}
 
@@ -117,6 +143,7 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	util.JSON(w, http.StatusOK, updatedUser)
 }
 
+// DeleteUser endpoint
 func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
@@ -127,7 +154,7 @@ func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenID, err := auth.ExtractTokenID(r)
+	tokenID, err := auth.ExtractTokenMetaData(r)
 	if err != nil {
 		util.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -146,6 +173,7 @@ func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	util.JSON(w, http.StatusNoContent, "")
 }
 
+// GetUserByID endpoint
 func (uc *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
@@ -162,6 +190,7 @@ func (uc *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	util.JSON(w, http.StatusOK, userGotten)
 }
 
+// GetAllUsers endpoint
 func (uc *UserController) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	users, err := uc.userUC.GetAllUsers()

@@ -17,7 +17,7 @@ type mysqlUserRepository struct {
 }
 
 // NewMysqlUserRepository will create an object that will implement UserRepository interface
-// Need to implement all the methods from the interface
+// Note: Need to implement all the methods from the interface
 func NewMysqlUserRepository(DB *gorm.DB) repository.UserRepository {
 	return &mysqlUserRepository{DB}
 }
@@ -32,7 +32,7 @@ func (mysqlUserRepo *mysqlUserRepository) SignIn(email, password string) (string
 	if err != nil {
 		return "", err
 	}
-	err = model.VerifyPassword(user.Password, password)
+	err = VerifyPassword(user.Password, password)
 	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
 		return "", err
 	}
@@ -41,9 +41,14 @@ func (mysqlUserRepo *mysqlUserRepository) SignIn(email, password string) (string
 
 func (mysqlUserRepo *mysqlUserRepository) CreateUser(u *model.User) (*model.User, error) {
 
-	errr := mysqlUserRepo.DB.Debug().Create(&u).Error
-	if errr != nil {
-		return &model.User{}, nil
+	var err error
+	err = BeforeSave(u)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = mysqlUserRepo.DB.Debug().Create(&u).Error
+	if err != nil {
+		return &model.User{}, err
 	}
 
 	return u, nil
@@ -51,7 +56,7 @@ func (mysqlUserRepo *mysqlUserRepository) CreateUser(u *model.User) (*model.User
 
 func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *model.User) (*model.User, error) {
 
-	err := u.BeforeSave()
+	err := BeforeSave(u)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -110,4 +115,24 @@ func (mysqlUserRepo *mysqlUserRepository) GetAllUsers() (*[]model.User, error) {
 	}
 	return &users, err
 
+}
+
+// Hash will hash the user's password
+func Hash(password string) ([]byte, error) {
+	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+}
+
+// VerifyPassword will check if the user's password matched with the hashed password
+func VerifyPassword(hashedPassword, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}
+
+// BeforeSave will hash the password before creating/updating a user
+func BeforeSave(u *model.User) error {
+	hashedPassword, err := Hash(u.Password)
+	if err != nil {
+		return err
+	}
+	u.Password = string(hashedPassword)
+	return nil
 }

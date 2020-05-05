@@ -1,9 +1,7 @@
 package auth
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,17 +11,18 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
-func CreateToken(user_id uint64) (string, error) {
+// CreateToken will create a token valid for 15 minutues using HS256 algorithm
+func CreateToken(userID uint64) (string, error) {
 	claims := jwt.MapClaims{}
 	claims["authorized"] = true
-	claims["user_id"] = user_id
-	claims["exp"] = time.Now().Add(time.Hour * 1).Unix()
+	claims["user_id"] = userID
+	claims["exp"] = time.Now().Add(time.Minute * 15).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(os.Getenv("API_SECRET")))
-
 }
 
-func TokenValid(r *http.Request) error {
+// ValidateToken will validate the token passed in the authentication header. Called in middleware/middleware.go
+func ValidateToken(r *http.Request) error {
 	tokenString := ExtractToken(r)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -34,12 +33,13 @@ func TokenValid(r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		Display(claims)
+	if _, ok := token.Claims.(jwt.MapClaims); !ok && !token.Valid {
+		return err
 	}
 	return nil
 }
 
+// ExtractToken from the request header
 func ExtractToken(r *http.Request) string {
 	keys := r.URL.Query()
 	token := keys.Get("token")
@@ -53,7 +53,8 @@ func ExtractToken(r *http.Request) string {
 	return ""
 }
 
-func ExtractTokenID(r *http.Request) (uint64, error) {
+// ExtractTokenMetaData will extract the tokenID
+func ExtractTokenMetaData(r *http.Request) (uint64, error) {
 
 	tokenString := ExtractToken(r)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -74,15 +75,4 @@ func ExtractTokenID(r *http.Request) (uint64, error) {
 		return uint64(uid), nil
 	}
 	return 0, nil
-}
-
-//Display will display claims in the terminal
-func Display(data interface{}) {
-	b, err := json.MarshalIndent(data, "", " ")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	fmt.Println(string(b))
 }

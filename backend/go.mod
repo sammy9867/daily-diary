@@ -3,7 +3,7 @@ module github.com/sammy9867/daily-diary/backend
 go 1.13
 
 require (
-	github.com/badoux/checkmail v0.0.0-20181210160741-9661bd69e9ad // indirect
+	github.com/badoux/checkmail v0.0.0-20181210160741-9661bd69e9ad
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/assert/v2 v2.0.1 // indirect
 	github.com/gorilla/mux v1.7.4
