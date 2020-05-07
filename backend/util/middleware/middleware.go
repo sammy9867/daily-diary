@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/sammy9867/daily-diary/backend/user/controller/auth"
-	"github.com/sammy9867/daily-diary/backend/user/controller/util"
+	"github.com/sammy9867/daily-diary/backend/util/auth"
+	"github.com/sammy9867/daily-diary/backend/util/encode"
 )
 
 // SetMiddlewareJSON will format all responses to JSON.
@@ -21,7 +21,7 @@ func SetMiddlewareAuthentication(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := auth.ValidateToken(r)
 		if err != nil {
-			util.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+			encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 			return
 		}
 		next(w, r)

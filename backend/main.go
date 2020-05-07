@@ -11,11 +11,15 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql" // mysql driver
 	"github.com/joho/godotenv"
 
+	"github.com/sammy9867/daily-diary/backend/model"
+
 	_userController "github.com/sammy9867/daily-diary/backend/user/controller"
 	_userRepo "github.com/sammy9867/daily-diary/backend/user/repository/mysql"
 	_userUseCase "github.com/sammy9867/daily-diary/backend/user/usecase/usecaseimpl"
 
-	"github.com/sammy9867/daily-diary/backend/user/model"
+	_entryController "github.com/sammy9867/daily-diary/backend/entry/controller"
+	_entryRepo "github.com/sammy9867/daily-diary/backend/entry/repository/mysql"
+	_entryUseCase "github.com/sammy9867/daily-diary/backend/entry/usecase/usecaseimpl"
 )
 
 func Initialize(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) (DB *gorm.DB) {
@@ -52,10 +56,14 @@ func run() {
 	userRepo := _userRepo.NewMysqlUserRepository(DB)
 	userUseCase := _userUseCase.NewUserUseCase(userRepo)
 
-	DB.Debug().AutoMigrate(&model.User{}) //database migration
+	entryRepo := _entryRepo.NewMysqlEntryRepository(DB)
+	entryUseCase := _entryUseCase.NewEntryUseCase(entryRepo)
+
+	DB.Debug().AutoMigrate(&model.User{}, &model.Entry{}, &model.EntryImage{}) //database migration
 
 	router := mux.NewRouter()
 	_userController.NewUserController(router, userUseCase)
+	_entryController.NewEntryController(router, entryUseCase)
 
 	fmt.Println("Listening to port 8080")
 	log.Fatal(http.ListenAndServe("localhost:8080", router))

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/sammy9867/daily-diary/backend/user/controller/auth"
-	"github.com/sammy9867/daily-diary/backend/user/model"
+	"github.com/sammy9867/daily-diary/backend/model"
 	"github.com/sammy9867/daily-diary/backend/user/repository"
+	"github.com/sammy9867/daily-diary/backend/util/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 

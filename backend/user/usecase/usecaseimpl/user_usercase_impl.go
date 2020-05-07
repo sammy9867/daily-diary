@@ -1,7 +1,7 @@
 package usecaseimpl
 
 import (
-	"github.com/sammy9867/daily-diary/backend/user/model"
+	"github.com/sammy9867/daily-diary/backend/model"
 	"github.com/sammy9867/daily-diary/backend/user/repository"
 	"github.com/sammy9867/daily-diary/backend/user/usecase"
 )

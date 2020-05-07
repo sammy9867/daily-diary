@@ -1,4 +1,4 @@
-package util
+package format
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/badoux/checkmail"
-	"github.com/sammy9867/daily-diary/backend/user/model"
+	"github.com/sammy9867/daily-diary/backend/model"
 )
 
 // FormatError is used to return custom error response
