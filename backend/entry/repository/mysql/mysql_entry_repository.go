@@ -131,7 +131,7 @@ func (mysqlEntryRepo *mysqlEntryRepository) DeleteEntryImages(eid uint64) (int64
 
 	if db.Error != nil {
 		if gorm.IsRecordNotFoundError(db.Error) {
-			return 0, errors.New("EntryImage not found")
+			return 0, nil
 		}
 		return 0, db.Error
 	}
