@@ -11,8 +11,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql" // mysql driver
 	"github.com/joho/godotenv"
 
-	"github.com/sammy9867/daily-diary/backend/model"
-
 	_userController "github.com/sammy9867/daily-diary/backend/user/controller"
 	_userRepo "github.com/sammy9867/daily-diary/backend/user/repository/mysql"
 	_userUseCase "github.com/sammy9867/daily-diary/backend/user/usecase/usecaseimpl"
@@ -33,7 +31,7 @@ func Initialize(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) (DB
 			fmt.Printf("Cannot connect to %s database", Dbdriver)
 			log.Fatal("This is the error:", err)
 		} else {
-			fmt.Printf("We are connected to the %s database", Dbdriver)
+			fmt.Printf("We are connected to the %s database\n", Dbdriver)
 		}
 	}
 
@@ -59,8 +57,6 @@ func run() {
 
 	entryRepo := _entryRepo.NewMysqlEntryRepository(DB)
 	entryUseCase := _entryUseCase.NewEntryUseCase(entryRepo)
-
-	DB.Debug().AutoMigrate(&model.User{}, &model.Entry{}, &model.EntryImage{}) //database migration
 
 	router := mux.NewRouter()
 	_userController.NewUserController(router, userUseCase)

@@ -3,6 +3,7 @@ package mysql
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -61,6 +62,12 @@ func (mysqlEntryRepo *mysqlEntryRepository) UpdateEntry(eid uint64, entry *model
 }
 
 func (mysqlEntryRepo *mysqlEntryRepository) DeleteEntry(eid uint64, uid uint64) (int64, error) {
+
+	_, err := mysqlEntryRepo.DeleteEntryImages(eid)
+	if err != nil {
+		return 0, err
+	}
+
 	db := mysqlEntryRepo.DB.Debug().Model(&model.Entry{}).Where("id = ? and owner_id = ?", eid, uid).Take(&model.Entry{}).Delete(&model.Entry{})
 
 	if db.Error != nil {
@@ -70,15 +77,12 @@ func (mysqlEntryRepo *mysqlEntryRepository) DeleteEntry(eid uint64, uid uint64) 
 		return 0, db.Error
 	}
 
-	_, err := mysqlEntryRepo.DeleteEntryImages(eid)
-	if err != nil {
-		return 0, err
-	}
-
 	return db.RowsAffected, nil
 }
 
 func (mysqlEntryRepo *mysqlEntryRepository) GetEntryOfUserByID(eid uint64, uid uint64) (*model.Entry, error) {
+
+	defer timeTrack(time.Now(), "GetEntryOfUserByID")
 	var err error
 	entry := model.Entry{}
 	err = mysqlEntryRepo.DB.Debug().Model(&model.Entry{}).Where("id = ? and owner_id = ?", eid, uid).Take(&entry).Error
@@ -150,4 +154,9 @@ func (mysqlEntryRepo *mysqlEntryRepository) GetAllEntryImagesOfEntry(eid uint64)
 	}
 
 	return &entryImages, nil
+}
+
+func timeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	log.Printf("Time Taken by %s is %s", name, elapsed)
 }
