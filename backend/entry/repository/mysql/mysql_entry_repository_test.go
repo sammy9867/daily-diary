@@ -291,7 +291,7 @@ func mockDB() {
 		log.Printf("Error dropping tables %v\n", err)
 	}
 
-	err = dbConn.DB.AutoMigrate(&model.User{}, &model.Entry{}, &model.EntryImage{}).Error
+	err = dbConn.DB.AutoMigrate(&model.User{}, &model.EntryImage{}, &model.Entry{}).Error
 	if err != nil {
 		log.Printf("Error migrating User and/or Entry %v\n", err)
 	}

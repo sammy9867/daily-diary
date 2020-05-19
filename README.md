@@ -35,9 +35,10 @@ DB_PASSWORD_TEST=DB_USER_PASSWORD
 DB_NAME_TEST=YOUR_DB_TEST
 DB_PORT_TEST=3306
 ```
+* Run the ***diary_db.sql*** file in your database workbench.
 * Navigate to the folder where ***main.go*** resides and enter the following command to run the program:
 ```
-go run main,go
+go run main.go
 ```
 ## Running the tests
 Each repository folder has a test file. Make sure you have created a separate database for testing purposes. In order to run a particular test, run the following command:

@@ -9,7 +9,4 @@ type EntryRepository interface {
 	DeleteEntry(eid, uid uint64) (int64, error)
 	GetEntryOfUserByID(eid uint64, uid uint64) (*model.Entry, error)
 	GetAllEntriesOfUser(uid uint64) (*[]model.Entry, error)
-
-	DeleteEntryImages(eid uint64) (int64, error)
-	GetAllEntryImagesOfEntry(eid uint64) (*[]model.EntryImage, error)
 }

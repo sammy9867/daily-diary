@@ -29,5 +29,16 @@ CREATE TABLE entry_images (
     created_at DATETIME, 
     updated_at DATETIME,
     PRIMARY KEY (id),
-    FOREIGN KEY (entry_id) REFERENCES entries(id)
+    FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE
 );
+
+DROP PROCEDURE IF EXISTS GetAllEntryImagesOfEntry;
+DELIMITER //
+CREATE PROCEDURE GetAllEntryImagesOfEntry(IN entry_id BIGINT)
+BEGIN
+    SELECT * FROM entry_images
+    WHERE entry_images.entry_id = entry_id;
+END //
+DELIMITER ;
+
+
