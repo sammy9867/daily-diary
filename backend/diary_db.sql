@@ -9,7 +9,7 @@ CREATE TABLE users (
     password VARCHAR(100),
     created_at DATETIME, 
     updated_at DATETIME,
-	PRIMARY KEY (id)
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE entries (
