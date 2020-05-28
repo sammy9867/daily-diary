@@ -1,7 +1,7 @@
 package usecaseimpl
 
 import (
-	"github.com/sammy9867/daily-diary/backend/model"
+	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/user/repository"
 	"github.com/sammy9867/daily-diary/backend/user/usecase"
 )
@@ -21,12 +21,12 @@ func (userUC *userUsecase) SignIn(email, password string) (string, error) {
 	return token, err
 }
 
-func (userUC *userUsecase) CreateUser(u *model.User) (*model.User, error) {
+func (userUC *userUsecase) CreateUser(u *domain.User) (*domain.User, error) {
 	createdUser, err := userUC.userRepo.CreateUser(u)
 	return createdUser, err
 }
 
-func (userUC *userUsecase) UpdateUser(uid uint64, u *model.User) (*model.User, error) {
+func (userUC *userUsecase) UpdateUser(uid uint64, u *domain.User) (*domain.User, error) {
 	updatedUser, err := userUC.userRepo.UpdateUser(uint64(uid), u)
 	return updatedUser, err
 }
@@ -36,12 +36,12 @@ func (userUC *userUsecase) DeleteUser(uid uint64) (int64, error) {
 	return deletedUserID, err
 }
 
-func (userUC *userUsecase) GetUserByID(uid uint64) (*model.User, error) {
+func (userUC *userUsecase) GetUserByID(uid uint64) (*domain.User, error) {
 	user, err := userUC.userRepo.GetUserByID(uint64(uid))
 	return user, err
 }
 
-func (userUC *userUsecase) GetAllUsers() (*[]model.User, error) {
+func (userUC *userUsecase) GetAllUsers() (*[]domain.User, error) {
 	users, err := userUC.userRepo.GetAllUsers()
 	return users, err
 }

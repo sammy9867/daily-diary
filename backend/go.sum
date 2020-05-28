@@ -31,6 +31,7 @@ github.com/mattn/go-sqlite3 v2.0.1+incompatible h1:xQ15muvnzGBHpIpdrNi1DA5x0+TcB
 github.com/mattn/go-sqlite3 v2.0.1+incompatible/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
 github.com/sammy9867/daily-diary v0.0.0-20200505034433-2b0f92002e05 h1:EfNWN9oTFW6er2OjEwoO2ZT/fHbGyvitz40BBY6zB8I=
 github.com/sammy9867/daily-diary v0.0.0-20200507172423-9e24fa9dfe59 h1:F0tUQsZQsw4FGuRenPL4YeASKNZhUSTC07xszDhCRXU=
+github.com/sammy9867/daily-diary v0.0.0-20200521170401-42486ec6ce2c h1:GTw1ZXTbnKVYvg07QCMXZxbIL/+ttsbOjWAi0RTT2GI=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191205180655-e7c4368fe9dd h1:GGJVjV8waZKRHrgwvtH66z9ZGVurTD1MT0n1Bb+q4aM=

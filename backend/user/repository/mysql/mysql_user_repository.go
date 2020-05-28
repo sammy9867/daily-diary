@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/sammy9867/daily-diary/backend/model"
+	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/user/repository"
 	"github.com/sammy9867/daily-diary/backend/util/auth"
 	"golang.org/x/crypto/bcrypt"
@@ -26,9 +26,9 @@ func (mysqlUserRepo *mysqlUserRepository) SignIn(email, password string) (string
 
 	var err error
 
-	user := model.User{}
+	user := domain.User{}
 
-	err = mysqlUserRepo.DB.Debug().Model(model.User{}).Where("email = ?", email).Take(&user).Error
+	err = mysqlUserRepo.DB.Debug().Model(domain.User{}).Where("email = ?", email).Take(&user).Error
 	if err != nil {
 		return "", err
 	}
@@ -39,7 +39,7 @@ func (mysqlUserRepo *mysqlUserRepository) SignIn(email, password string) (string
 	return auth.CreateToken(user.ID)
 }
 
-func (mysqlUserRepo *mysqlUserRepository) CreateUser(u *model.User) (*model.User, error) {
+func (mysqlUserRepo *mysqlUserRepository) CreateUser(u *domain.User) (*domain.User, error) {
 
 	var err error
 	err = BeforeSave(u)
@@ -48,20 +48,20 @@ func (mysqlUserRepo *mysqlUserRepository) CreateUser(u *model.User) (*model.User
 	}
 	err = mysqlUserRepo.DB.Debug().Create(&u).Error
 	if err != nil {
-		return &model.User{}, err
+		return &domain.User{}, err
 	}
 
 	return u, nil
 }
 
-func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *model.User) (*model.User, error) {
+func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *domain.User) (*domain.User, error) {
 
 	err := BeforeSave(u)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db := mysqlUserRepo.DB.Debug().Model(&model.User{}).Where("id = ?", uid).UpdateColumns(
+	db := mysqlUserRepo.DB.Debug().Model(&domain.User{}).Where("id = ?", uid).UpdateColumns(
 		map[string]interface{}{
 			"username":   u.Username,
 			"email":      u.Email,
@@ -71,18 +71,18 @@ func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *model.User) 
 	)
 
 	if db.Error != nil {
-		return &model.User{}, db.Error
+		return &domain.User{}, db.Error
 	}
 
 	user, err := mysqlUserRepo.GetUserByID(uid)
 	if err != nil {
-		return &model.User{}, err
+		return &domain.User{}, err
 	}
 	return user, nil
 }
 
 func (mysqlUserRepo *mysqlUserRepository) DeleteUser(uid uint64) (int64, error) {
-	db := mysqlUserRepo.DB.Debug().Model(&model.User{}).Where("id = ?", uid).Take(&model.User{}).Delete(&model.User{})
+	db := mysqlUserRepo.DB.Debug().Model(&domain.User{}).Where("id = ?", uid).Take(&domain.User{}).Delete(&domain.User{})
 
 	if db.Error != nil {
 		return 0, db.Error
@@ -90,28 +90,28 @@ func (mysqlUserRepo *mysqlUserRepository) DeleteUser(uid uint64) (int64, error) 
 	return db.RowsAffected, nil
 }
 
-func (mysqlUserRepo *mysqlUserRepository) GetUserByID(uid uint64) (*model.User, error) {
+func (mysqlUserRepo *mysqlUserRepository) GetUserByID(uid uint64) (*domain.User, error) {
 
 	var err error
-	user := model.User{}
-	err = mysqlUserRepo.DB.Debug().Model(model.User{}).Where("id = ?", uid).Take(&user).Error
+	user := domain.User{}
+	err = mysqlUserRepo.DB.Debug().Model(domain.User{}).Where("id = ?", uid).Take(&user).Error
 	if err != nil {
-		return &model.User{}, err
+		return &domain.User{}, err
 	}
 	if gorm.IsRecordNotFoundError(err) {
-		return &model.User{}, errors.New("User Not Found")
+		return &domain.User{}, errors.New("User Not Found")
 	}
 	return &user, err
 }
 
-func (mysqlUserRepo *mysqlUserRepository) GetAllUsers() (*[]model.User, error) {
+func (mysqlUserRepo *mysqlUserRepository) GetAllUsers() (*[]domain.User, error) {
 
 	var err error
-	users := []model.User{}
+	users := []domain.User{}
 
-	err = mysqlUserRepo.DB.Debug().Model(&model.User{}).Limit(100).Find(&users).Error
+	err = mysqlUserRepo.DB.Debug().Model(&domain.User{}).Limit(100).Find(&users).Error
 	if err != nil {
-		return &[]model.User{}, err
+		return &[]domain.User{}, err
 	}
 	return &users, err
 
@@ -128,7 +128,7 @@ func VerifyPassword(hashedPassword, password string) error {
 }
 
 // BeforeSave will hash the password before creating/updating a user
-func BeforeSave(u *model.User) error {
+func BeforeSave(u *domain.User) error {
 	hashedPassword, err := Hash(u.Password)
 	if err != nil {
 		return err

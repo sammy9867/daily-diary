@@ -1,15 +1,15 @@
 package usecase
 
 import (
-	"github.com/sammy9867/daily-diary/backend/model"
+	"github.com/sammy9867/daily-diary/backend/domain"
 )
 
 // UserUseCase represents the users usecase
 type UserUseCase interface {
 	SignIn(email, password string) (string, error)
-	CreateUser(*model.User) (*model.User, error)
-	UpdateUser(uint64, *model.User) (*model.User, error)
+	CreateUser(*domain.User) (*domain.User, error)
+	UpdateUser(uint64, *domain.User) (*domain.User, error)
 	DeleteUser(uint64) (int64, error)
-	GetUserByID(uint64) (*model.User, error)
-	GetAllUsers() (*[]model.User, error)
+	GetUserByID(uint64) (*domain.User, error)
+	GetAllUsers() (*[]domain.User, error)
 }

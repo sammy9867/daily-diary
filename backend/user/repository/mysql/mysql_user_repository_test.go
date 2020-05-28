@@ -11,7 +11,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/go-playground/assert/v2"
-	"github.com/sammy9867/daily-diary/backend/model"
+	"github.com/sammy9867/daily-diary/backend/domain"
 	_userRepo "github.com/sammy9867/daily-diary/backend/user/repository/mysql"
 )
 
@@ -24,7 +24,7 @@ var dbConn = DatabaseConnection{}
 func TestCreateUser(t *testing.T) {
 
 	mockDB()
-	newUser := model.User{
+	newUser := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
@@ -46,19 +46,19 @@ func TestCreateUser(t *testing.T) {
 func TestUpdateUser(t *testing.T) {
 
 	mockDB()
-	user := model.User{
+	user := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
 		Password: "password",
 	}
 
-	err := dbConn.DB.Model(&model.User{}).Create(&user).Error
+	err := dbConn.DB.Model(&domain.User{}).Create(&user).Error
 	if err != nil {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	userUpdate := model.User{
+	userUpdate := domain.User{
 		ID:       1,
 		Username: "sammyUpdated",
 		Email:    "sammyUpdated@gmail.com",
@@ -80,14 +80,14 @@ func TestUpdateUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 
 	mockDB()
-	user := model.User{
+	user := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
 		Password: "password",
 	}
 
-	err := dbConn.DB.Model(&model.User{}).Create(&user).Error
+	err := dbConn.DB.Model(&domain.User{}).Create(&user).Error
 	if err != nil {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
@@ -104,14 +104,14 @@ func TestDeleteUser(t *testing.T) {
 func TestGetUserByID(t *testing.T) {
 
 	mockDB()
-	user := model.User{
+	user := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
 		Password: "password",
 	}
 
-	err := dbConn.DB.Model(&model.User{}).Create(&user).Error
+	err := dbConn.DB.Model(&domain.User{}).Create(&user).Error
 	if err != nil {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
@@ -130,15 +130,15 @@ func TestGetUserByID(t *testing.T) {
 func TestGetAllUsers(t *testing.T) {
 
 	mockDB()
-	users := []model.User{
+	users := []domain.User{
 
-		model.User{
+		domain.User{
 			ID:       1,
 			Username: "Sammy",
 			Email:    "sammy@gmail.com",
 			Password: "password",
 		},
-		model.User{
+		domain.User{
 			ID:       2,
 			Username: "pammy",
 			Email:    "pammy@gmail.com",
@@ -147,7 +147,7 @@ func TestGetAllUsers(t *testing.T) {
 	}
 
 	for i := range users {
-		err := dbConn.DB.Model(&model.User{}).Create(&users[i]).Error
+		err := dbConn.DB.Model(&domain.User{}).Create(&users[i]).Error
 		if err != nil {
 			log.Fatalf("Error saving the user: %v\n", err)
 		}
@@ -173,14 +173,8 @@ func mockDB() {
 	dbConn.InitializeDBTest(os.Getenv("DB_DRIVER_TEST"), os.Getenv("DB_USER_TEST"), os.Getenv("DB_PASSWORD_TEST"), os.Getenv("DB_PORT_TEST"),
 		os.Getenv("DB_HOST_TEST"), os.Getenv("DB_NAME_TEST"))
 
-	err = dbConn.DB.DropTableIfExists(&model.User{}).Error
-	if err != nil {
-		log.Printf("Error dropping table %v\n", err)
-	}
-
-	err = dbConn.DB.AutoMigrate(&model.User{}).Error
-	if err != nil {
-		log.Printf("Error migrating User %v\n", err)
+	if err := dbConn.DB.Raw("CALL TrucateTables()").Scan(&domain.EntryImage{}).Scan(&domain.Entry{}).Scan(&domain.User{}).Error; err != nil {
+		log.Printf("Error truncating tables: %v\n", err)
 	}
 
 	log.Printf("Successfully refreshed table")

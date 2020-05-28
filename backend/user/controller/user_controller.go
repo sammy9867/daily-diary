@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/sammy9867/daily-diary/backend/model"
+	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/user/controller/format"
 	"github.com/sammy9867/daily-diary/backend/user/usecase"
 	"github.com/sammy9867/daily-diary/backend/util/auth"
@@ -44,7 +44,7 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
 		return
 	}
-	user := model.User{}
+	user := domain.User{}
 	err = json.Unmarshal(body, &user)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -74,7 +74,7 @@ func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
 	}
-	user := model.User{}
+	user := domain.User{}
 	err = json.Unmarshal(body, &user)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -112,7 +112,7 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
 		return
 	}
-	user := model.User{}
+	user := domain.User{}
 	err = json.Unmarshal(body, &user)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)

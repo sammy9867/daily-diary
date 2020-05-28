@@ -1,6 +1,6 @@
-DROP DATABASE IF EXISTS diary_db;
-CREATE DATABASE diary_db;
-USE diary_db;
+DROP DATABASE IF EXISTS diary_db_test;
+CREATE DATABASE diary_db_test;
+USE diary_db_test;
 
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT, 
@@ -39,6 +39,23 @@ CREATE PROCEDURE GetAllEntryImagesOfEntry(IN entry_id BIGINT)
 BEGIN
     SELECT * FROM entry_images
     WHERE entry_images.entry_id = entry_id;
+END //
+DELIMITER ;
+
+-- Truncating tables for testing purposes
+DROP PROCEDURE IF EXISTS TrucateTables;
+DELIMITER //
+CREATE PROCEDURE TrucateTables()
+BEGIN
+	TRUNCATE entry_images;
+    
+	SET FOREIGN_KEY_CHECKS = 0; 
+	TRUNCATE entries;
+    SET FOREIGN_KEY_CHECKS = 1;
+    
+	SET FOREIGN_KEY_CHECKS = 0; 
+	TRUNCATE users;
+    SET FOREIGN_KEY_CHECKS = 1;
 END //
 DELIMITER ;
 

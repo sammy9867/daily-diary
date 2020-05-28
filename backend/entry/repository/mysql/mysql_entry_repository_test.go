@@ -11,8 +11,8 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/go-playground/assert/v2"
+	"github.com/sammy9867/daily-diary/backend/domain"
 	_entryRepo "github.com/sammy9867/daily-diary/backend/entry/repository/mysql"
-	"github.com/sammy9867/daily-diary/backend/model"
 )
 
 type DatabaseConnection struct {
@@ -25,19 +25,19 @@ func TestCreateEntry(t *testing.T) {
 
 	mockDB()
 	var err error
-	user := model.User{
+	user := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
 		Password: "password",
 	}
 
-	err = dbConn.DB.Model(&model.User{}).Create(&user).Error
+	err = dbConn.DB.Model(&domain.User{}).Create(&user).Error
 	if err != nil {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	entry := model.Entry{
+	entry := domain.Entry{
 		ID:          1,
 		Title:       "title sam",
 		Description: "description sam",
@@ -61,31 +61,31 @@ func TestUpdateEntry(t *testing.T) {
 
 	mockDB()
 	var err error
-	user := model.User{
+	user := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
 		Password: "password",
 	}
 
-	err = dbConn.DB.Model(&model.User{}).Create(&user).Error
+	err = dbConn.DB.Model(&domain.User{}).Create(&user).Error
 	if err != nil {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	entry := model.Entry{
+	entry := domain.Entry{
 		ID:          1,
 		Title:       "title sam",
 		Description: "description sam",
 		OwnerID:     user.ID,
 	}
 
-	err = dbConn.DB.Model(&model.Entry{}).Create(&entry).Error
+	err = dbConn.DB.Model(&domain.Entry{}).Create(&entry).Error
 	if err != nil {
 		log.Fatalf("Error saving the entry: %v\n", err)
 	}
 
-	entryUpdate := model.Entry{
+	entryUpdate := domain.Entry{
 		ID:          1,
 		Title:       "entryUpdated Title",
 		Description: "entryUpdated Desc",
@@ -109,26 +109,26 @@ func TestDeleteEntryWithoutImage(t *testing.T) {
 
 	mockDB()
 	var err error
-	user := model.User{
+	user := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
 		Password: "password",
 	}
 
-	err = dbConn.DB.Model(&model.User{}).Create(&user).Error
+	err = dbConn.DB.Model(&domain.User{}).Create(&user).Error
 	if err != nil {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	entryWithoutImage := model.Entry{
+	entryWithoutImage := domain.Entry{
 		ID:          1,
 		Title:       "title sam",
 		Description: "description sam",
 		OwnerID:     user.ID,
 	}
 
-	err = dbConn.DB.Model(&model.Entry{}).Create(&entryWithoutImage).Error
+	err = dbConn.DB.Model(&domain.Entry{}).Create(&entryWithoutImage).Error
 	if err != nil {
 		log.Fatalf("Error saving the entry without image: %v\n", err)
 	}
@@ -146,23 +146,23 @@ func TestDeleteEntryWithImage(t *testing.T) {
 
 	mockDB()
 	var err error
-	user := model.User{
+	user := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
 		Password: "password",
 	}
 
-	err = dbConn.DB.Model(&model.User{}).Create(&user).Error
+	err = dbConn.DB.Model(&domain.User{}).Create(&user).Error
 	if err != nil {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	entryWithImage := model.Entry{
+	entryWithImage := domain.Entry{
 		ID:          1,
 		Title:       "title sam",
 		Description: "description sam",
-		EntryImages: []model.EntryImage{
+		EntryImages: []domain.EntryImage{
 			{
 				ID:      1,
 				URL:     "image url",
@@ -172,7 +172,7 @@ func TestDeleteEntryWithImage(t *testing.T) {
 		OwnerID: user.ID,
 	}
 
-	err = dbConn.DB.Model(&model.Entry{}).Create(&entryWithImage).Error
+	err = dbConn.DB.Model(&domain.Entry{}).Create(&entryWithImage).Error
 	if err != nil {
 		log.Fatalf("Error saving the entry with image: %v\n", err)
 	}
@@ -190,26 +190,26 @@ func TestGetEntryOfUserByID(t *testing.T) {
 
 	mockDB()
 	var err error
-	user := model.User{
+	user := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
 		Password: "password",
 	}
 
-	err = dbConn.DB.Model(&model.User{}).Create(&user).Error
+	err = dbConn.DB.Model(&domain.User{}).Create(&user).Error
 	if err != nil {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	entry := model.Entry{
+	entry := domain.Entry{
 		ID:          1,
 		Title:       "title sam",
 		Description: "description sam",
 		OwnerID:     user.ID,
 	}
 
-	err = dbConn.DB.Model(&model.Entry{}).Create(&entry).Error
+	err = dbConn.DB.Model(&domain.Entry{}).Create(&entry).Error
 	if err != nil {
 		log.Fatalf("Error saving the entry: %v\n", err)
 	}
@@ -226,32 +226,32 @@ func TestGetEntryOfUserByID(t *testing.T) {
 	assert.Equal(t, entry.OwnerID, entryFound.OwnerID)
 }
 
-func TestGetAllEntriesOfUser(t *testing.T) {
+func TestGetAllEntriesOfUserWithoutImage(t *testing.T) {
 
 	mockDB()
 	var err error
-	user := model.User{
+	user := domain.User{
 		ID:       1,
 		Username: "Sammy",
 		Email:    "sammy@gmail.com",
 		Password: "password",
 	}
 
-	err = dbConn.DB.Model(&model.User{}).Create(&user).Error
+	err = dbConn.DB.Model(&domain.User{}).Create(&user).Error
 	if err != nil {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	entries := []model.Entry{
+	entries := []domain.Entry{
 
-		model.Entry{
+		domain.Entry{
 			ID:          1,
 			Title:       "title sam",
 			Description: "description sam",
 			OwnerID:     user.ID,
 		},
 
-		model.Entry{
+		domain.Entry{
 			ID:          2,
 			Title:       "title pam",
 			Description: "description pam",
@@ -260,7 +260,80 @@ func TestGetAllEntriesOfUser(t *testing.T) {
 	}
 
 	for i := range entries {
-		err := dbConn.DB.Model(&model.Entry{}).Create(&entries[i]).Error
+		err := dbConn.DB.Model(&domain.Entry{}).Create(&entries[i]).Error
+		if err != nil {
+			log.Fatalf("Error saving the entry: %v\n", err)
+		}
+	}
+
+	entriesFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).GetAllEntriesOfUser(user.ID)
+	if err != nil {
+		t.Errorf("Error while finding users: %v\n", err)
+		return
+	}
+
+	assert.Equal(t, len(entries), len(*entriesFound))
+}
+
+func TestGetAllEntriesOfUserWithImage(t *testing.T) {
+
+	mockDB()
+	var err error
+	user := domain.User{
+		ID:       1,
+		Username: "Sammy",
+		Email:    "sammy@gmail.com",
+		Password: "password",
+	}
+
+	err = dbConn.DB.Model(&domain.User{}).Create(&user).Error
+	if err != nil {
+		log.Fatalf("Error saving the user: %v\n", err)
+	}
+
+	entries := []domain.Entry{
+
+		domain.Entry{
+			ID:          1,
+			Title:       "title sam",
+			Description: "description sam",
+			EntryImages: []domain.EntryImage{
+				{
+					ID:      1,
+					URL:     "image url",
+					EntryID: 1,
+				},
+				{
+					ID:      2,
+					URL:     "image url2",
+					EntryID: 1,
+				},
+			},
+			OwnerID: user.ID,
+		},
+
+		domain.Entry{
+			ID:          2,
+			Title:       "title pam",
+			Description: "description pam",
+			EntryImages: []domain.EntryImage{
+				{
+					ID:      3,
+					URL:     "image url",
+					EntryID: 2,
+				},
+				{
+					ID:      4,
+					URL:     "image url2",
+					EntryID: 2,
+				},
+			},
+			OwnerID: user.ID,
+		},
+	}
+
+	for i := range entries {
+		err := dbConn.DB.Model(&domain.Entry{}).Create(&entries[i]).Error
 		if err != nil {
 			log.Fatalf("Error saving the entry: %v\n", err)
 		}
@@ -286,14 +359,8 @@ func mockDB() {
 	dbConn.InitializeDBTest(os.Getenv("DB_DRIVER_TEST"), os.Getenv("DB_USER_TEST"), os.Getenv("DB_PASSWORD_TEST"), os.Getenv("DB_PORT_TEST"),
 		os.Getenv("DB_HOST_TEST"), os.Getenv("DB_NAME_TEST"))
 
-	err = dbConn.DB.DropTableIfExists(&model.User{}, &model.Entry{}, &model.EntryImage{}).Error
-	if err != nil {
-		log.Printf("Error dropping tables %v\n", err)
-	}
-
-	err = dbConn.DB.AutoMigrate(&model.User{}, &model.EntryImage{}, &model.Entry{}).Error
-	if err != nil {
-		log.Printf("Error migrating User and/or Entry %v\n", err)
+	if err := dbConn.DB.Raw("CALL TrucateTables()").Scan(&domain.EntryImage{}).Scan(&domain.Entry{}).Scan(&domain.User{}).Error; err != nil {
+		log.Printf("Error truncating tables: %v\n", err)
 	}
 
 	log.Printf("Successfully refreshed table")

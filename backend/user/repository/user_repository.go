@@ -1,15 +1,15 @@
 package repository
 
 import (
-	"github.com/sammy9867/daily-diary/backend/model"
+	"github.com/sammy9867/daily-diary/backend/domain"
 )
 
 // UserRepository represents the users repository
 type UserRepository interface {
 	SignIn(email, password string) (string, error)
-	CreateUser(*model.User) (*model.User, error)
-	UpdateUser(uint64, *model.User) (*model.User, error)
+	CreateUser(*domain.User) (*domain.User, error)
+	UpdateUser(uint64, *domain.User) (*domain.User, error)
 	DeleteUser(uid uint64) (int64, error)
-	GetUserByID(uid uint64) (*model.User, error)
-	GetAllUsers() (*[]model.User, error)
+	GetUserByID(uid uint64) (*domain.User, error)
+	GetAllUsers() (*[]domain.User, error)
 }

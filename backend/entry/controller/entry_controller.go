@@ -9,9 +9,9 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/entry/controller/format"
 	"github.com/sammy9867/daily-diary/backend/entry/usecase"
-	"github.com/sammy9867/daily-diary/backend/model"
 	"github.com/sammy9867/daily-diary/backend/util/auth"
 	"github.com/sammy9867/daily-diary/backend/util/encode"
 	"github.com/sammy9867/daily-diary/backend/util/middleware"
@@ -44,7 +44,7 @@ func (ec *EntryController) CreateEntry(w http.ResponseWriter, r *http.Request) {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
 	}
 
-	entry := model.Entry{}
+	entry := domain.Entry{}
 	err = json.Unmarshal(body, &entry)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -119,7 +119,7 @@ func (ec *EntryController) UpdateEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entryUpdate := model.Entry{}
+	entryUpdate := domain.Entry{}
 	err = json.Unmarshal(body, &entryUpdate)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
