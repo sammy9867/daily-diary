@@ -41,7 +41,9 @@ DB_PORT_TEST=3306
 go run main.go
 ```
 ## Running the tests
-Each repository folder has a test file. Make sure you have created a separate database for testing purposes. In order to run a particular test, run the following command:
+* Each repository folder has a test file. We will create a separate database for testing purposes. 
+* Run the ***diary_db_test.sql*** file in your database workbench.
+* In order to run a particular test, run the following command:
 ```
 go test --run TestName
 ```
