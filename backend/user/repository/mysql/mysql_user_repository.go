@@ -2,9 +2,12 @@ package mysql
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"strconv"
 	"time"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/user/repository"
@@ -13,13 +16,14 @@ import (
 )
 
 type mysqlUserRepository struct {
-	DB *gorm.DB
+	DB   *gorm.DB
+	pool *redis.Pool
 }
 
 // NewMysqlUserRepository will create an object that will implement UserRepository interface
 // Note: Need to implement all the methods from the interface
-func NewMysqlUserRepository(DB *gorm.DB) repository.UserRepository {
-	return &mysqlUserRepository{DB}
+func NewMysqlUserRepository(DB *gorm.DB, pool *redis.Pool) repository.UserRepository {
+	return &mysqlUserRepository{DB, pool}
 }
 
 func (mysqlUserRepo *mysqlUserRepository) SignIn(email, password string) (string, error) {
@@ -70,6 +74,12 @@ func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *domain.User)
 		},
 	)
 
+	// Update Cache
+	if EXISTS(mysqlUserRepo.pool, uid) {
+		u.ID = uid
+		HMSET(mysqlUserRepo.pool, uid, u)
+	}
+
 	if db.Error != nil {
 		return &domain.User{}, db.Error
 	}
@@ -87,6 +97,12 @@ func (mysqlUserRepo *mysqlUserRepository) DeleteUser(uid uint64) (int64, error) 
 	if db.Error != nil {
 		return 0, db.Error
 	}
+
+	// Delete Cache
+	if EXISTS(mysqlUserRepo.pool, uid) {
+		DEL(mysqlUserRepo.pool, uid)
+	}
+
 	return db.RowsAffected, nil
 }
 
@@ -94,13 +110,28 @@ func (mysqlUserRepo *mysqlUserRepository) GetUserByID(uid uint64) (*domain.User,
 
 	var err error
 	user := domain.User{}
-	err = mysqlUserRepo.DB.Debug().Model(domain.User{}).Where("id = ?", uid).Take(&user).Error
-	if err != nil {
-		return &domain.User{}, err
+	// Redis
+
+	// Check whether data exists in Redis
+	if EXISTS(mysqlUserRepo.pool, uid) {
+		// Query Redis
+		HMGETALL(mysqlUserRepo.pool, uid, &user)
+
+	} else {
+
+		// Query MySql DB
+		err = mysqlUserRepo.DB.Debug().Model(domain.User{}).Where("id = ?", uid).Take(&user).Error
+		if err != nil {
+			return &domain.User{}, err
+		}
+		if gorm.IsRecordNotFoundError(err) {
+			return &domain.User{}, errors.New("User Not Found")
+		}
+
+		// Update Redis
+		HMSET(mysqlUserRepo.pool, uid, &user)
 	}
-	if gorm.IsRecordNotFoundError(err) {
-		return &domain.User{}, errors.New("User Not Found")
-	}
+
 	return &user, err
 }
 
@@ -135,4 +166,61 @@ func BeforeSave(u *domain.User) error {
 	}
 	u.Password = string(hashedPassword)
 	return nil
+}
+
+func EXISTS(pool *redis.Pool, uid uint64) bool {
+
+	fmt.Println("Redis EXISTS")
+	conn := pool.Get()
+	defer conn.Close()
+
+	// Check whether data exists in Redis
+	ok, err := redis.Bool(conn.Do("EXISTS", "user:"+strconv.FormatUint(uid, 10)))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return ok
+}
+
+// Redis Utility Functions
+func HMSET(pool *redis.Pool, uid uint64, user *domain.User) {
+
+	fmt.Println("Redis SET")
+	conn := pool.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("HMSET", redis.Args{}.Add("user:"+strconv.FormatUint(uid, 10)).AddFlat(user)...)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func HMGETALL(pool *redis.Pool, uid uint64, user *domain.User) {
+
+	fmt.Println("Redis GET")
+	conn := pool.Get()
+	defer conn.Close()
+
+	redisValue, err := redis.Values(conn.Do("HGETALL", "user:"+strconv.FormatUint(uid, 10)))
+	if err != nil {
+		fmt.Println(err)
+	}
+	// Save returned value in user struct
+	err = redis.ScanStruct(redisValue, user)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func DEL(pool *redis.Pool, uid uint64) {
+
+	fmt.Println("Redis DEL")
+	conn := pool.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("DEL", "user:"+strconv.FormatUint(uid, 10))
+	if err != nil {
+		fmt.Println(err)
+	}
 }

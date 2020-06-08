@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql" // mysql driver
@@ -39,6 +41,20 @@ func Initialize(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) (DB
 
 }
 
+func InitializeRedisCache(maxIdleConn int, port string) *redis.Pool {
+
+	pool := &redis.Pool{
+		MaxIdle:     10,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", port)
+		},
+	}
+
+	return pool
+
+}
+
 func run() {
 
 	var err error
@@ -51,8 +67,9 @@ func run() {
 	}
 
 	DB := Initialize(os.Getenv("DB_DRIVER"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_PORT"), os.Getenv("DB_HOST"), os.Getenv("DB_NAME"))
+	cachePool := InitializeRedisCache(10, "localhost:6379")
 
-	userRepo := _userRepo.NewMysqlUserRepository(DB)
+	userRepo := _userRepo.NewMysqlUserRepository(DB, cachePool)
 	userUseCase := _userUseCase.NewUserUseCase(userRepo)
 
 	entryRepo := _entryRepo.NewMysqlEntryRepository(DB)

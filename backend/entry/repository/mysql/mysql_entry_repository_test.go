@@ -266,7 +266,7 @@ func TestGetAllEntriesOfUserWithoutImage(t *testing.T) {
 		}
 	}
 
-	entriesFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).GetAllEntriesOfUser(user.ID)
+	entriesFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).GetAllEntriesOfUser(user.ID, 5, 1, 2018, 2020, "-title")
 	if err != nil {
 		t.Errorf("Error while finding users: %v\n", err)
 		return
@@ -339,7 +339,7 @@ func TestGetAllEntriesOfUserWithImage(t *testing.T) {
 		}
 	}
 
-	entriesFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).GetAllEntriesOfUser(user.ID)
+	entriesFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).GetAllEntriesOfUser(user.ID, 5, 1, 2018, 2020, "-title")
 	if err != nil {
 		t.Errorf("Error while finding users: %v\n", err)
 		return
