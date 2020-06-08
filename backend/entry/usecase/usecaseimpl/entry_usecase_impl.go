@@ -36,7 +36,7 @@ func (entryUC *entryUsecase) GetEntryOfUserByID(eid, uid uint64) (*domain.Entry,
 	return entry, err
 }
 
-func (entryUC *entryUsecase) GetAllEntriesOfUser(uid uint64) (*[]domain.Entry, error) {
-	entries, err := entryUC.entryRepo.GetAllEntriesOfUser(uid)
+func (entryUC *entryUsecase) GetAllEntriesOfUser(uid uint64, limit, pageNumber, year1, year2 uint32, sort string) (*[]domain.Entry, error) {
+	entries, err := entryUC.entryRepo.GetAllEntriesOfUser(uid, limit, pageNumber, year1, year2, sort)
 	return entries, err
 }

@@ -3,6 +3,7 @@ package mysql
 import (
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -101,14 +102,35 @@ func (mysqlEntryRepo *mysqlEntryRepository) GetEntryOfUserByID(eid uint64, uid u
 	return &entry, nil
 }
 
-func (mysqlEntryRepo *mysqlEntryRepository) GetAllEntriesOfUser(uid uint64) (*[]domain.Entry, error) {
+func (mysqlEntryRepo *mysqlEntryRepository) GetAllEntriesOfUser(uid uint64, limit, pageNumber, year1, year2 uint32, sort string) (*[]domain.Entry, error) {
 
 	var err error
 	entries := []domain.Entry{}
-	err = mysqlEntryRepo.DB.Debug().Model(&domain.Entry{}).Where("owner_id = ?", uid).Limit(100).Find(&entries).Error
+
+	order := orderBy(sort)
+
+	if year1 == 0 && year2 == 0 { // If no year is provided
+		err = mysqlEntryRepo.DB.Debug().Model(&domain.Entry{}).Where("owner_id = ?", uid).Order(order).Limit(limit).Offset(limit * (pageNumber - 1)).Find(&entries).Error
+
+	} else {
+		var yearStart, yearEnd uint32
+
+		if yearStart = year1; year1 == 0 {
+			yearStart = year2
+		}
+
+		if yearEnd = year2; year2 == 0 {
+			yearEnd = year1
+		}
+
+		err = mysqlEntryRepo.DB.Debug().Model(&domain.Entry{}).Where("owner_id = ? AND created_at BETWEEN STR_TO_DATE(?, '%Y') AND STR_TO_DATE(?, '%Y')", uid, yearStart, yearEnd+1).Order(order).Limit(limit).Offset(limit * (pageNumber - 1)).Find(&entries).Error
+
+	}
+
 	if err != nil {
 		return &[]domain.Entry{}, err
 	}
+
 	if len(entries) > 0 {
 		for i := range entries {
 			entryImages := []domain.EntryImage{}
@@ -120,6 +142,24 @@ func (mysqlEntryRepo *mysqlEntryRepository) GetAllEntriesOfUser(uid uint64) (*[]
 		}
 	}
 	return &entries, nil
+}
+
+// get all the orders()
+func orderBy(sort string) string {
+	var order string
+
+	filters := strings.Split(sort, ",")
+
+	for _, filter := range filters {
+		if filter[0] == '-' {
+			order += filter[1:len(filter)] + " desc, "
+		} else {
+			order += filter + ", "
+		}
+	}
+
+	order += "id desc"
+	return order
 }
 
 func timeTrack(start time.Time, name string) {

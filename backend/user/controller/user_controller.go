@@ -64,6 +64,7 @@ func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		encode.ERROR(w, http.StatusUnprocessableEntity, formattedError)
 		return
 	}
+	middleware.ApiKeySetter(token)
 	encode.JSON(w, http.StatusOK, token)
 }
 

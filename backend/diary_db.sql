@@ -20,7 +20,8 @@ CREATE TABLE entries (
     created_at DATETIME, 
     updated_at DATETIME,
     PRIMARY KEY (id),
-    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
+	INDEX (created_at)
 );
 
 CREATE TABLE entry_images (

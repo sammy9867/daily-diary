@@ -229,7 +229,42 @@ func (ec *EntryController) GetAllEntriesOfUser(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	entries, err := ec.entryUC.GetAllEntriesOfUser(uid)
+	params := r.URL.Query()
+
+	// Check for page limit
+	limit, err := strconv.ParseUint(params.Get("limit"), 10, 32) // (string, base, bitSize)
+	if err != nil {
+		limit = 10 // default limit
+	}
+
+	// Check for page number
+	pageNumber, err := strconv.ParseUint(params.Get("page"), 10, 32)
+	if err != nil {
+		pageNumber = 1 // default page number
+	}
+	if pageNumber < 1 {
+		pageNumber = 1 // Incorrect page parameter or just return an error
+	}
+
+	yearFilter1, err := strconv.ParseUint(params.Get("year[gte]"), 10, 32)
+	if err != nil {
+		yearFilter1 = 0
+	}
+
+	yearFilter2, err := strconv.ParseUint(params.Get("year[lte]"), 10, 32)
+	if err != nil {
+		yearFilter2 = 0
+	}
+
+	year, err := strconv.ParseUint(params.Get("year"), 10, 32)
+	if err == nil { // if only 1 year is present
+		yearFilter1 = year
+	}
+
+	sort := params.Get("sort")
+	fmt.Println("Sort: ", sort)
+
+	entries, err := ec.entryUC.GetAllEntriesOfUser(uid, uint32(limit), uint32(pageNumber), uint32(yearFilter1), uint32(yearFilter2), sort)
 	if err != nil {
 		encode.ERROR(w, http.StatusInternalServerError, err)
 		return
