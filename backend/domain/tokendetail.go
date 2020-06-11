@@ -9,3 +9,9 @@ type TokenDetail struct {
 	AcctokenExpiresAt int64  `json:"-"`
 	ReftokenExpiresAt int64  `json:"-"`
 }
+
+// AuthDetail model struct
+type AuthDetail struct {
+	AccessUUID string
+	UserID     uint64
+}

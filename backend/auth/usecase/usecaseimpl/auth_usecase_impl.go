@@ -20,3 +20,8 @@ func (authUC *authUsecase) Login(email, password string) (*domain.TokenDetail, e
 	tokenDetail, err := authUC.authRepo.Login(email, password)
 	return tokenDetail, err
 }
+
+func (authUC *authUsecase) Logout(uuid string) (int64, error) {
+	deleted, err := authUC.authRepo.Logout(uuid)
+	return deleted, err
+}

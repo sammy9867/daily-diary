@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/entry/controller/format"
@@ -20,12 +21,14 @@ import (
 // EntryController represents all the http request of an entry made by the user
 type EntryController struct {
 	entryUC usecase.EntryUseCase
+	pool    *redis.Pool
 }
 
 // NewEntryController creates an object of UserController
-func NewEntryController(router *mux.Router, es usecase.EntryUseCase) {
+func NewEntryController(router *mux.Router, pool *redis.Pool, es usecase.EntryUseCase) {
 	controller := &EntryController{
 		entryUC: es,
+		pool:    pool,
 	}
 
 	router.HandleFunc("/entries", middleware.SetMiddlewareJSON(middleware.SetMiddlewareAuthentication(controller.CreateEntry))).Methods("POST")
@@ -59,7 +62,13 @@ func (ec *EntryController) CreateEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Is the user authenticated?
-	uid, err := token.ExtractTokenMetaData(r)
+	authDetails, err := token.ExtractTokenMetaData(r)
+	if err != nil {
+		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+
+	uid, err := token.FetchAuthDetails(authDetails, ec.pool)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -94,7 +103,13 @@ func (ec *EntryController) UpdateEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Is the user authenticated?
-	uid, err := token.ExtractTokenMetaData(r)
+	authDetails, err := token.ExtractTokenMetaData(r)
+	if err != nil {
+		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+
+	uid, err := token.FetchAuthDetails(authDetails, ec.pool)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -164,7 +179,13 @@ func (ec *EntryController) DeleteEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Is the user authenticated?
-	uid, err := token.ExtractTokenMetaData(r)
+	authDetails, err := token.ExtractTokenMetaData(r)
+	if err != nil {
+		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+
+	uid, err := token.FetchAuthDetails(authDetails, ec.pool)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -204,7 +225,13 @@ func (ec *EntryController) GetEntryOfUserByID(w http.ResponseWriter, r *http.Req
 	}
 
 	// Is the user authenticated?
-	uid, err := token.ExtractTokenMetaData(r)
+	authDetails, err := token.ExtractTokenMetaData(r)
+	if err != nil {
+		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+
+	uid, err := token.FetchAuthDetails(authDetails, ec.pool)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -223,7 +250,13 @@ func (ec *EntryController) GetEntryOfUserByID(w http.ResponseWriter, r *http.Req
 func (ec *EntryController) GetAllEntriesOfUser(w http.ResponseWriter, r *http.Request) {
 
 	// Is the user authenticated?
-	uid, err := token.ExtractTokenMetaData(r)
+	authDetails, err := token.ExtractTokenMetaData(r)
+	if err != nil {
+		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+
+	uid, err := token.FetchAuthDetails(authDetails, ec.pool)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -262,7 +295,6 @@ func (ec *EntryController) GetAllEntriesOfUser(w http.ResponseWriter, r *http.Re
 	}
 
 	sort := params.Get("sort")
-	fmt.Println("Sort: ", sort)
 
 	entries, err := ec.entryUC.GetAllEntriesOfUser(uid, uint32(limit), uint32(pageNumber), uint32(yearFilter1), uint32(yearFilter2), sort)
 	if err != nil {

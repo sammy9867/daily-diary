@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/user/controller/format"
@@ -20,12 +21,14 @@ import (
 // UserController represents all the http request of the user
 type UserController struct {
 	userUC usecase.UserUseCase
+	pool   *redis.Pool
 }
 
 // NewUserController creates an object of UserController
-func NewUserController(router *mux.Router, us usecase.UserUseCase) {
+func NewUserController(router *mux.Router, pool *redis.Pool, us usecase.UserUseCase) {
 	controller := &UserController{
 		userUC: us,
+		pool:   pool,
 	}
 
 	router.HandleFunc("/users", middleware.SetMiddlewareJSON(controller.CreateUser)).Methods("POST")
@@ -87,12 +90,19 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenID, err := token.ExtractTokenMetaData(r)
+	authDetails, err := token.ExtractTokenMetaData(r)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
 	}
-	if tokenID != uint64(uid) {
+
+	userID, err := token.FetchAuthDetails(authDetails, uc.pool)
+	if err != nil {
+		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+
+	if userID != uint64(uid) {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
 		return
 	}
@@ -123,12 +133,19 @@ func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenID, err := token.ExtractTokenMetaData(r)
+	authDetails, err := token.ExtractTokenMetaData(r)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
 	}
-	if tokenID != 0 && tokenID != uint64(uid) {
+
+	userID, err := token.FetchAuthDetails(authDetails, uc.pool)
+	if err != nil {
+		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		return
+	}
+
+	if userID != 0 && userID != uint64(uid) {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
 		return
 	}

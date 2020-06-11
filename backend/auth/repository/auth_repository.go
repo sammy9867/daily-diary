@@ -7,5 +7,5 @@ import (
 // AuthRepository handles users authentication
 type AuthRepository interface {
 	Login(email, password string) (*domain.TokenDetail, error)
-	// Logout() error
+	Logout(uuid string) (int64, error)
 }

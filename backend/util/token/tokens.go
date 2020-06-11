@@ -107,8 +107,8 @@ func ExtractToken(r *http.Request) string {
 	return ""
 }
 
-// ExtractTokenMetaData will extract the tokenID
-func ExtractTokenMetaData(r *http.Request) (uint64, error) {
+// ExtractTokenMetaData will extract the authenication details that contain accessUUID and userID
+func ExtractTokenMetaData(r *http.Request) (*domain.AuthDetail, error) {
 
 	tokenString := ExtractToken(r)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -118,19 +118,50 @@ func ExtractTokenMetaData(r *http.Request) (uint64, error) {
 		return []byte(os.Getenv("ACCESS_SECRET")), nil
 	})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if ok && token.Valid {
-		_, ok := claims["access_uuid"].(string)
+		accessUUID, ok := claims["access_uuid"].(string)
 		if !ok {
-			return 0, err
+			return nil, err
 		}
 		uid, err := strconv.ParseUint(fmt.Sprintf("%.0f", claims["user_id"]), 10, 64)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
-		return uint64(uid), nil
+		return &domain.AuthDetail{
+			AccessUUID: accessUUID,
+			UserID:     uid,
+		}, nil
 	}
-	return 0, nil
+	return nil, err
+}
+
+// FetchAuthDetails fetches authentication details
+func FetchAuthDetails(authDetail *domain.AuthDetail, pool *redis.Pool) (uint64, error) {
+
+	conn := pool.Get()
+	defer conn.Close()
+
+	userid, err := redis.String(conn.Do("GET", authDetail.AccessUUID))
+	if err != nil {
+		return 0, err
+	}
+
+	userID, _ := strconv.ParseUint(userid, 10, 64)
+	return userID, nil
+}
+
+// DeleteAuth deletes uuid from redis for logout
+func DeleteAuth(uuid string, pool *redis.Pool) (int64, error) {
+	conn := pool.Get()
+	defer conn.Close()
+
+	deleted, err := redis.Int64(conn.Do("DEL", uuid))
+	if err != nil {
+		return 0, err
+	}
+
+	return deleted, nil
 }

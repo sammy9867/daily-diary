@@ -7,5 +7,5 @@ import (
 // AuthUseCase represents the users authentication usecase
 type AuthUseCase interface {
 	Login(email, password string) (*domain.TokenDetail, error)
-	// Logout() error
+	Logout(uuid string) (int64, error)
 }

@@ -87,9 +87,9 @@ func run() {
 	entryUseCase := _entryUseCase.NewEntryUseCase(entryRepo)
 
 	router := mux.NewRouter()
-	_authController.NewAuthController(router, authUseCase)
-	_userController.NewUserController(router, userUseCase)
-	_entryController.NewEntryController(router, entryUseCase)
+	_authController.NewAuthController(router, cachePool, authUseCase)
+	_userController.NewUserController(router, cachePool, userUseCase)
+	_entryController.NewEntryController(router, cachePool, entryUseCase)
 
 	fmt.Println("Listening to port 8080")
 	log.Fatal(http.ListenAndServe("localhost:8080", router))

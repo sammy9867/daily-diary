@@ -48,9 +48,15 @@ func (mysqlAuthRepo *mysqlAuthRepository) Login(email, password string) (*domain
 	return tokenDetails, nil
 }
 
-// func (mysqlAuthRepo *mysqlAuthRepository) Logout() error {
-// 	return nil
-// }
+func (mysqlAuthRepo *mysqlAuthRepository) Logout(uuid string) (int64, error) {
+
+	deleted, err := token.DeleteAuth(uuid, mysqlAuthRepo.pool)
+	if err != nil {
+		return 0, err
+	}
+
+	return deleted, nil
+}
 
 // VerifyPassword will check if the user's password matched with the hashed password
 func VerifyPassword(hashedPassword, password string) error {
