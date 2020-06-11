@@ -10,6 +10,8 @@ github.com/go-playground/assert v1.2.1 h1:ad06XqC+TOv0nJWnbULSlh3ehp5uLuQEojZY5T
 github.com/go-playground/assert v1.2.1/go.mod h1:Lgy+k19nOB/wQG/fVSQ7rra5qYugmytMQqvQ2dgjWn8=
 github.com/go-playground/assert/v2 v2.0.1 h1:MsBgLAaY856+nPRTKrp3/OZK38U/wa0CcBYNjji3q3A=
 github.com/go-playground/assert/v2 v2.0.1/go.mod h1:VDjEfimB/XKnb+ZQfWdccd7VUvScMdVu0Titje2rxJ4=
+github.com/go-redis/redis v6.15.8+incompatible h1:BKZuG6mCnRj5AOaWJXoCgf6rqTYnYJLe4en2hxT7r9o=
+github.com/go-redis/redis v6.15.8+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/go-sql-driver/mysql v1.4.1 h1:g24URVg0OFbNUTx9qqY1IRZ9D9z3iPyi5zKhQZpNwpA=
 github.com/go-sql-driver/mysql v1.4.1/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe h1:lXe2qZdvpiX5WZkZR4hgp4KJVfY3nMkvmwbVkpv1rVY=
@@ -32,6 +34,8 @@ github.com/lib/pq v1.1.1 h1:sJZmqHoEaY7f+NPP8pgLB/WxulyR3fewgCM2qaSlBb4=
 github.com/lib/pq v1.1.1/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/mattn/go-sqlite3 v2.0.1+incompatible h1:xQ15muvnzGBHpIpdrNi1DA5x0+TcBZzsIDwmw9uTHzw=
 github.com/mattn/go-sqlite3 v2.0.1+incompatible/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
+github.com/nitishm/go-rejson v2.0.0+incompatible h1:EonP2aMpu8dwTdsHpf6GNWPelMGhtAkZuP4AAqX4L1M=
+github.com/nitishm/go-rejson v2.0.0+incompatible/go.mod h1:rf2TLG+3UeN+UKqaiBuJSAbJkLCKtN96ROyLOhN5KQQ=
 github.com/sammy9867/daily-diary v0.0.0-20200505034433-2b0f92002e05 h1:EfNWN9oTFW6er2OjEwoO2ZT/fHbGyvitz40BBY6zB8I=
 github.com/sammy9867/daily-diary v0.0.0-20200507172423-9e24fa9dfe59 h1:F0tUQsZQsw4FGuRenPL4YeASKNZhUSTC07xszDhCRXU=
 github.com/sammy9867/daily-diary v0.0.0-20200521170401-42486ec6ce2c h1:GTw1ZXTbnKVYvg07QCMXZxbIL/+ttsbOjWAi0RTT2GI=

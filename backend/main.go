@@ -12,6 +12,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql" // mysql driver
 	"github.com/joho/godotenv"
+	"github.com/nitishm/go-rejson"
 
 	_userController "github.com/sammy9867/daily-diary/backend/user/controller"
 	_userRepo "github.com/sammy9867/daily-diary/backend/user/repository/mysql"
@@ -44,7 +45,7 @@ func Initialize(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) (DB
 func InitializeRedisCache(maxIdleConn int, port string) *redis.Pool {
 
 	pool := &redis.Pool{
-		MaxIdle:     10,
+		MaxIdle:     maxIdleConn,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
 			return redis.Dial("tcp", port)
@@ -52,7 +53,6 @@ func InitializeRedisCache(maxIdleConn int, port string) *redis.Pool {
 	}
 
 	return pool
-
 }
 
 func run() {
@@ -68,8 +68,12 @@ func run() {
 
 	DB := Initialize(os.Getenv("DB_DRIVER"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_PORT"), os.Getenv("DB_HOST"), os.Getenv("DB_NAME"))
 	cachePool := InitializeRedisCache(10, "localhost:6379")
+	conn := cachePool.Get()
+	defer conn.Close()
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
 
-	userRepo := _userRepo.NewMysqlUserRepository(DB, cachePool)
+	userRepo := _userRepo.NewMysqlUserRepository(DB, rh)
 	userUseCase := _userUseCase.NewUserUseCase(userRepo)
 
 	entryRepo := _entryRepo.NewMysqlEntryRepository(DB)

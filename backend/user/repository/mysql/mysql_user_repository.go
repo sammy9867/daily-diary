@@ -4,26 +4,26 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
+	"github.com/nitishm/go-rejson"
 	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/user/repository"
+	"github.com/sammy9867/daily-diary/backend/user/repository/cache"
 	"github.com/sammy9867/daily-diary/backend/util/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type mysqlUserRepository struct {
-	DB   *gorm.DB
-	pool *redis.Pool
+	DB *gorm.DB
+	rh *rejson.Handler
 }
 
 // NewMysqlUserRepository will create an object that will implement UserRepository interface
 // Note: Need to implement all the methods from the interface
-func NewMysqlUserRepository(DB *gorm.DB, pool *redis.Pool) repository.UserRepository {
-	return &mysqlUserRepository{DB, pool}
+func NewMysqlUserRepository(DB *gorm.DB, rh *rejson.Handler) repository.UserRepository {
+	return &mysqlUserRepository{DB, rh}
 }
 
 func (mysqlUserRepo *mysqlUserRepository) SignIn(email, password string) (string, error) {
@@ -74,15 +74,21 @@ func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *domain.User)
 		},
 	)
 
-	// Update Cache
-	if EXISTS(mysqlUserRepo.pool, uid) {
-		u.ID = uid
-		HMSET(mysqlUserRepo.pool, uid, u)
-	}
-
 	if db.Error != nil {
 		return &domain.User{}, db.Error
 	}
+
+	// Update Cache
+	userCache, err := cache.ReJsonGet(mysqlUserRepo.rh, uid)
+	if err != nil {
+		return &domain.User{}, err
+	}
+
+	userCache.Username = u.Username
+	userCache.Email = u.Email
+	userCache.Password = u.Password
+	userCache.UpdatedAt = time.Now()
+	cache.ReJsonSet(mysqlUserRepo.rh, uid, userCache)
 
 	user, err := mysqlUserRepo.GetUserByID(uid)
 	if err != nil {
@@ -99,9 +105,11 @@ func (mysqlUserRepo *mysqlUserRepository) DeleteUser(uid uint64) (int64, error) 
 	}
 
 	// Delete Cache
-	if EXISTS(mysqlUserRepo.pool, uid) {
-		DEL(mysqlUserRepo.pool, uid)
+	_, err := cache.ReJsonGet(mysqlUserRepo.rh, uid)
+	if err != nil {
+		return 0, err
 	}
+	cache.ReJsonDel(mysqlUserRepo.rh, uid)
 
 	return db.RowsAffected, nil
 }
@@ -109,17 +117,11 @@ func (mysqlUserRepo *mysqlUserRepository) DeleteUser(uid uint64) (int64, error) 
 func (mysqlUserRepo *mysqlUserRepository) GetUserByID(uid uint64) (*domain.User, error) {
 
 	var err error
-	user := domain.User{}
-	// Redis
 
 	// Check whether data exists in Redis
-	if EXISTS(mysqlUserRepo.pool, uid) {
-		// Query Redis
-		HMGETALL(mysqlUserRepo.pool, uid, &user)
-
-	} else {
-
-		// Query MySql DB
+	user, err := cache.ReJsonGet(mysqlUserRepo.rh, uid)
+	if err != nil {
+		fmt.Println("fetch from db")
 		err = mysqlUserRepo.DB.Debug().Model(domain.User{}).Where("id = ?", uid).Take(&user).Error
 		if err != nil {
 			return &domain.User{}, err
@@ -129,10 +131,10 @@ func (mysqlUserRepo *mysqlUserRepository) GetUserByID(uid uint64) (*domain.User,
 		}
 
 		// Update Redis
-		HMSET(mysqlUserRepo.pool, uid, &user)
+		cache.ReJsonSet(mysqlUserRepo.rh, uid, user)
 	}
 
-	return &user, err
+	return user, err
 }
 
 func (mysqlUserRepo *mysqlUserRepository) GetAllUsers() (*[]domain.User, error) {
@@ -166,61 +168,4 @@ func BeforeSave(u *domain.User) error {
 	}
 	u.Password = string(hashedPassword)
 	return nil
-}
-
-func EXISTS(pool *redis.Pool, uid uint64) bool {
-
-	fmt.Println("Redis EXISTS")
-	conn := pool.Get()
-	defer conn.Close()
-
-	// Check whether data exists in Redis
-	ok, err := redis.Bool(conn.Do("EXISTS", "user:"+strconv.FormatUint(uid, 10)))
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	return ok
-}
-
-// Redis Utility Functions
-func HMSET(pool *redis.Pool, uid uint64, user *domain.User) {
-
-	fmt.Println("Redis SET")
-	conn := pool.Get()
-	defer conn.Close()
-
-	_, err := conn.Do("HMSET", redis.Args{}.Add("user:"+strconv.FormatUint(uid, 10)).AddFlat(user)...)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func HMGETALL(pool *redis.Pool, uid uint64, user *domain.User) {
-
-	fmt.Println("Redis GET")
-	conn := pool.Get()
-	defer conn.Close()
-
-	redisValue, err := redis.Values(conn.Do("HGETALL", "user:"+strconv.FormatUint(uid, 10)))
-	if err != nil {
-		fmt.Println(err)
-	}
-	// Save returned value in user struct
-	err = redis.ScanStruct(redisValue, user)
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func DEL(pool *redis.Pool, uid uint64) {
-
-	fmt.Println("Redis DEL")
-	conn := pool.Get()
-	defer conn.Close()
-
-	_, err := conn.Do("DEL", "user:"+strconv.FormatUint(uid, 10))
-	if err != nil {
-		fmt.Println(err)
-	}
 }

@@ -5,21 +5,25 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql" //mysql driver
 	"github.com/joho/godotenv"
+	"github.com/nitishm/go-rejson"
 
 	"github.com/go-playground/assert/v2"
 	"github.com/sammy9867/daily-diary/backend/domain"
 	_userRepo "github.com/sammy9867/daily-diary/backend/user/repository/mysql"
 )
 
-type DatabaseConnection struct {
+type mockDatabaseConnection struct {
 	DB *gorm.DB
+	rh *rejson.Handler
 }
 
-var dbConn = DatabaseConnection{}
+var dbConn = mockDatabaseConnection{}
 
 func TestCreateUser(t *testing.T) {
 
@@ -31,7 +35,7 @@ func TestCreateUser(t *testing.T) {
 		Password: "password",
 	}
 
-	savedUser, err := _userRepo.NewMysqlUserRepository(dbConn.DB).CreateUser(&newUser)
+	savedUser, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).CreateUser(&newUser)
 	if err != nil {
 		t.Errorf("Error saving the user: %v\n", err)
 		return
@@ -65,7 +69,7 @@ func TestUpdateUser(t *testing.T) {
 		Password: "password",
 	}
 
-	updatedUser, err := _userRepo.NewMysqlUserRepository(dbConn.DB).UpdateUser(userUpdate.ID, &userUpdate)
+	updatedUser, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).UpdateUser(userUpdate.ID, &userUpdate)
 	if err != nil {
 		t.Errorf("Error while updating the user: %v\n", err)
 		return
@@ -92,7 +96,7 @@ func TestDeleteUser(t *testing.T) {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	isDeleted, err := _userRepo.NewMysqlUserRepository(dbConn.DB).DeleteUser(user.ID)
+	isDeleted, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).DeleteUser(user.ID)
 	if err != nil {
 		t.Errorf("Error while deleting the user: %v\n", err)
 		return
@@ -116,7 +120,7 @@ func TestGetUserByID(t *testing.T) {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	userFound, err := _userRepo.NewMysqlUserRepository(dbConn.DB).GetUserByID(user.ID)
+	userFound, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).GetUserByID(user.ID)
 	if err != nil {
 		t.Errorf("Error while finding the user: %v\n", err)
 		return
@@ -153,7 +157,7 @@ func TestGetAllUsers(t *testing.T) {
 		}
 	}
 
-	usersFound, err := _userRepo.NewMysqlUserRepository(dbConn.DB).GetAllUsers()
+	usersFound, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).GetAllUsers()
 	if err != nil {
 		t.Errorf("Error while finding users: %v\n", err)
 		return
@@ -162,6 +166,7 @@ func TestGetAllUsers(t *testing.T) {
 	assert.Equal(t, len(users), len(*usersFound))
 }
 
+// Mock redis too
 func mockDB() {
 	var err error
 	err = godotenv.Load(os.ExpandEnv("../../../.env"))
@@ -173,6 +178,8 @@ func mockDB() {
 	dbConn.InitializeDBTest(os.Getenv("DB_DRIVER_TEST"), os.Getenv("DB_USER_TEST"), os.Getenv("DB_PASSWORD_TEST"), os.Getenv("DB_PORT_TEST"),
 		os.Getenv("DB_HOST_TEST"), os.Getenv("DB_NAME_TEST"))
 
+	dbConn.InitializeRedisCacheTest(10, "localhost:6379")
+
 	if err := dbConn.DB.Raw("CALL TrucateTables()").Scan(&domain.EntryImage{}).Scan(&domain.Entry{}).Scan(&domain.User{}).Error; err != nil {
 		log.Printf("Error truncating tables: %v\n", err)
 	}
@@ -180,7 +187,7 @@ func mockDB() {
 	log.Printf("Successfully refreshed table")
 }
 
-func (dbConnec *DatabaseConnection) InitializeDBTest(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) {
+func (dbConnec *mockDatabaseConnection) InitializeDBTest(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) {
 
 	var err error
 
@@ -194,4 +201,26 @@ func (dbConnec *DatabaseConnection) InitializeDBTest(Dbdriver, DbUser, DbPasswor
 			fmt.Printf("We are connected to the %s database\n", Dbdriver)
 		}
 	}
+}
+
+func (dbConnec *mockDatabaseConnection) InitializeRedisCacheTest(maxIdleConn int, port string) {
+
+	pool := &redis.Pool{
+		MaxIdle:     maxIdleConn,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", port)
+		},
+	}
+
+	conn := pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	dbConnec.rh = rejson.NewReJSONHandler()
+	dbConnec.rh.SetRedigoClient(conn)
+
 }
