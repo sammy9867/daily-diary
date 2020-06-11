@@ -6,7 +6,6 @@ import (
 
 // UserRepository represents the users repository
 type UserRepository interface {
-	SignIn(email, password string) (string, error)
 	CreateUser(*domain.User) (*domain.User, error)
 	UpdateUser(uint64, *domain.User) (*domain.User, error)
 	DeleteUser(uid uint64) (int64, error)

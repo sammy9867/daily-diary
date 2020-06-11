@@ -12,9 +12,9 @@ import (
 	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/user/controller/format"
 	"github.com/sammy9867/daily-diary/backend/user/usecase"
-	"github.com/sammy9867/daily-diary/backend/util/auth"
 	"github.com/sammy9867/daily-diary/backend/util/encode"
 	"github.com/sammy9867/daily-diary/backend/util/middleware"
+	"github.com/sammy9867/daily-diary/backend/util/token"
 )
 
 // UserController represents all the http request of the user
@@ -28,44 +28,11 @@ func NewUserController(router *mux.Router, us usecase.UserUseCase) {
 		userUC: us,
 	}
 
-	router.HandleFunc("/login", middleware.SetMiddlewareJSON(controller.Login)).Methods("POST")
-
 	router.HandleFunc("/users", middleware.SetMiddlewareJSON(controller.CreateUser)).Methods("POST")
 	router.HandleFunc("/users/{id}", middleware.SetMiddlewareJSON(middleware.SetMiddlewareAuthentication(controller.UpdateUser))).Methods("PUT")
 	router.HandleFunc("/users/{id}", middleware.SetMiddlewareAuthentication(controller.DeleteUser)).Methods("DELETE")
 	router.HandleFunc("/users/{id}", middleware.SetMiddlewareJSON(controller.GetUserByID)).Methods("GET")
 	router.HandleFunc("/users", middleware.SetMiddlewareJSON(controller.GetAllUsers)).Methods("GET")
-}
-
-// Login endpoint
-func (uc *UserController) Login(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		encode.ERROR(w, http.StatusUnprocessableEntity, err)
-		return
-	}
-	user := domain.User{}
-	err = json.Unmarshal(body, &user)
-	if err != nil {
-		encode.ERROR(w, http.StatusUnprocessableEntity, err)
-		return
-	}
-
-	format.Initialize(&user)
-	err = format.Validate(&user, "login")
-	if err != nil {
-		encode.ERROR(w, http.StatusUnprocessableEntity, err)
-		return
-	}
-
-	token, err := uc.userUC.SignIn(user.Email, user.Password)
-	if err != nil {
-		formattedError := format.FormatError(err.Error())
-		encode.ERROR(w, http.StatusUnprocessableEntity, formattedError)
-		return
-	}
-
-	encode.JSON(w, http.StatusOK, token)
 }
 
 // CreateUser endpoint is used to create a new user using usersname, email and password
@@ -120,7 +87,7 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenID, err := auth.ExtractTokenMetaData(r)
+	tokenID, err := token.ExtractTokenMetaData(r)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -156,7 +123,7 @@ func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenID, err := auth.ExtractTokenMetaData(r)
+	tokenID, err := token.ExtractTokenMetaData(r)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return

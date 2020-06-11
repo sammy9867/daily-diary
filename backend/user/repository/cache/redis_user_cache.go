@@ -10,8 +10,8 @@ import (
 	"github.com/sammy9867/daily-diary/backend/domain"
 )
 
-// ReJsonSet saves the json in redis
-func ReJsonSet(rh *rejson.Handler, uid uint64, user *domain.User) {
+// ReJSONSet saves the json in redis
+func ReJSONSet(rh *rejson.Handler, uid uint64, user *domain.User) {
 
 	fmt.Println("Redis SET")
 
@@ -21,8 +21,8 @@ func ReJsonSet(rh *rejson.Handler, uid uint64, user *domain.User) {
 	}
 }
 
-// ReJsonGet gets the json from redis
-func ReJsonGet(rh *rejson.Handler, uid uint64) (*domain.User, error) {
+// ReJSONGet gets the json from redis
+func ReJSONGet(rh *rejson.Handler, uid uint64) (*domain.User, error) {
 
 	fmt.Println("Redis GET")
 
@@ -40,8 +40,8 @@ func ReJsonGet(rh *rejson.Handler, uid uint64) (*domain.User, error) {
 	return &user, nil
 }
 
-// ReJsonDel deletes the json from redis
-func ReJsonDel(rh *rejson.Handler, uid uint64) {
+// ReJSONDel deletes the json from redis
+func ReJSONDel(rh *rejson.Handler, uid uint64) {
 
 	fmt.Println("Redis DEL")
 

@@ -12,9 +12,9 @@ import (
 	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/entry/controller/format"
 	"github.com/sammy9867/daily-diary/backend/entry/usecase"
-	"github.com/sammy9867/daily-diary/backend/util/auth"
 	"github.com/sammy9867/daily-diary/backend/util/encode"
 	"github.com/sammy9867/daily-diary/backend/util/middleware"
+	"github.com/sammy9867/daily-diary/backend/util/token"
 )
 
 // EntryController represents all the http request of an entry made by the user
@@ -59,7 +59,7 @@ func (ec *EntryController) CreateEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Is the user authenticated?
-	uid, err := auth.ExtractTokenMetaData(r)
+	uid, err := token.ExtractTokenMetaData(r)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -94,7 +94,7 @@ func (ec *EntryController) UpdateEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Is the user authenticated?
-	uid, err := auth.ExtractTokenMetaData(r)
+	uid, err := token.ExtractTokenMetaData(r)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -164,7 +164,7 @@ func (ec *EntryController) DeleteEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Is the user authenticated?
-	uid, err := auth.ExtractTokenMetaData(r)
+	uid, err := token.ExtractTokenMetaData(r)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -204,7 +204,7 @@ func (ec *EntryController) GetEntryOfUserByID(w http.ResponseWriter, r *http.Req
 	}
 
 	// Is the user authenticated?
-	uid, err := auth.ExtractTokenMetaData(r)
+	uid, err := token.ExtractTokenMetaData(r)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
@@ -223,7 +223,7 @@ func (ec *EntryController) GetEntryOfUserByID(w http.ResponseWriter, r *http.Req
 func (ec *EntryController) GetAllEntriesOfUser(w http.ResponseWriter, r *http.Request) {
 
 	// Is the user authenticated?
-	uid, err := auth.ExtractTokenMetaData(r)
+	uid, err := token.ExtractTokenMetaData(r)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return

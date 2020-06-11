@@ -39,6 +39,9 @@ github.com/nitishm/go-rejson v2.0.0+incompatible/go.mod h1:rf2TLG+3UeN+UKqaiBuJS
 github.com/sammy9867/daily-diary v0.0.0-20200505034433-2b0f92002e05 h1:EfNWN9oTFW6er2OjEwoO2ZT/fHbGyvitz40BBY6zB8I=
 github.com/sammy9867/daily-diary v0.0.0-20200507172423-9e24fa9dfe59 h1:F0tUQsZQsw4FGuRenPL4YeASKNZhUSTC07xszDhCRXU=
 github.com/sammy9867/daily-diary v0.0.0-20200521170401-42486ec6ce2c h1:GTw1ZXTbnKVYvg07QCMXZxbIL/+ttsbOjWAi0RTT2GI=
+github.com/sammy9867/daily-diary v0.0.0-20200528230608-8935311ab501 h1:rsx+wZ72aQeKbNo9tCXttyNbsDKzXUWXBxJVhSM6DQ8=
+github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
+github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191205180655-e7c4368fe9dd h1:GGJVjV8waZKRHrgwvtH66z9ZGVurTD1MT0n1Bb+q4aM=

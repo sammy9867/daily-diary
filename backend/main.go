@@ -14,6 +14,10 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/nitishm/go-rejson"
 
+	_authController "github.com/sammy9867/daily-diary/backend/auth/controller"
+	_authRepo "github.com/sammy9867/daily-diary/backend/auth/repository/mysql"
+	_authUseCase "github.com/sammy9867/daily-diary/backend/auth/usecase/usecaseimpl"
+
 	_userController "github.com/sammy9867/daily-diary/backend/user/controller"
 	_userRepo "github.com/sammy9867/daily-diary/backend/user/repository/mysql"
 	_userUseCase "github.com/sammy9867/daily-diary/backend/user/usecase/usecaseimpl"
@@ -73,6 +77,9 @@ func run() {
 	rh := rejson.NewReJSONHandler()
 	rh.SetRedigoClient(conn)
 
+	authRepo := _authRepo.NewMysqlAuthRepository(DB, cachePool)
+	authUseCase := _authUseCase.NewAuthUseCase(authRepo)
+
 	userRepo := _userRepo.NewMysqlUserRepository(DB, rh)
 	userUseCase := _userUseCase.NewUserUseCase(userRepo)
 
@@ -80,6 +87,7 @@ func run() {
 	entryUseCase := _entryUseCase.NewEntryUseCase(entryRepo)
 
 	router := mux.NewRouter()
+	_authController.NewAuthController(router, authUseCase)
 	_userController.NewUserController(router, userUseCase)
 	_entryController.NewEntryController(router, entryUseCase)
 

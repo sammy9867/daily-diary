@@ -13,6 +13,7 @@ require (
 	github.com/jinzhu/gorm v1.9.12
 	github.com/joho/godotenv v1.3.0
 	github.com/nitishm/go-rejson v2.0.0+incompatible
+	github.com/satori/go.uuid v1.2.0
 	golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 )

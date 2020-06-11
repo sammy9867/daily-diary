@@ -16,11 +16,6 @@ func NewUserUseCase(ur repository.UserRepository) usecase.UserUseCase {
 	return &userUsecase{userRepo: ur}
 }
 
-func (userUC *userUsecase) SignIn(email, password string) (string, error) {
-	token, err := userUC.userRepo.SignIn(email, password)
-	return token, err
-}
-
 func (userUC *userUsecase) CreateUser(u *domain.User) (*domain.User, error) {
 	createdUser, err := userUC.userRepo.CreateUser(u)
 	return createdUser, err

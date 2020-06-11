@@ -11,7 +11,6 @@ import (
 	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/user/repository"
 	"github.com/sammy9867/daily-diary/backend/user/repository/cache"
-	"github.com/sammy9867/daily-diary/backend/util/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -24,23 +23,6 @@ type mysqlUserRepository struct {
 // Note: Need to implement all the methods from the interface
 func NewMysqlUserRepository(DB *gorm.DB, rh *rejson.Handler) repository.UserRepository {
 	return &mysqlUserRepository{DB, rh}
-}
-
-func (mysqlUserRepo *mysqlUserRepository) SignIn(email, password string) (string, error) {
-
-	var err error
-
-	user := domain.User{}
-
-	err = mysqlUserRepo.DB.Debug().Model(domain.User{}).Where("email = ?", email).Take(&user).Error
-	if err != nil {
-		return "", err
-	}
-	err = VerifyPassword(user.Password, password)
-	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
-		return "", err
-	}
-	return auth.CreateToken(user.ID)
 }
 
 func (mysqlUserRepo *mysqlUserRepository) CreateUser(u *domain.User) (*domain.User, error) {
@@ -79,7 +61,7 @@ func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *domain.User)
 	}
 
 	// Update Cache
-	userCache, err := cache.ReJsonGet(mysqlUserRepo.rh, uid)
+	userCache, err := cache.ReJSONGet(mysqlUserRepo.rh, uid)
 	if err != nil {
 		return &domain.User{}, err
 	}
@@ -88,7 +70,7 @@ func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *domain.User)
 	userCache.Email = u.Email
 	userCache.Password = u.Password
 	userCache.UpdatedAt = time.Now()
-	cache.ReJsonSet(mysqlUserRepo.rh, uid, userCache)
+	cache.ReJSONSet(mysqlUserRepo.rh, uid, userCache)
 
 	user, err := mysqlUserRepo.GetUserByID(uid)
 	if err != nil {
@@ -105,11 +87,11 @@ func (mysqlUserRepo *mysqlUserRepository) DeleteUser(uid uint64) (int64, error) 
 	}
 
 	// Delete Cache
-	_, err := cache.ReJsonGet(mysqlUserRepo.rh, uid)
+	_, err := cache.ReJSONGet(mysqlUserRepo.rh, uid)
 	if err != nil {
 		return 0, err
 	}
-	cache.ReJsonDel(mysqlUserRepo.rh, uid)
+	cache.ReJSONDel(mysqlUserRepo.rh, uid)
 
 	return db.RowsAffected, nil
 }
@@ -119,7 +101,7 @@ func (mysqlUserRepo *mysqlUserRepository) GetUserByID(uid uint64) (*domain.User,
 	var err error
 
 	// Check whether data exists in Redis
-	user, err := cache.ReJsonGet(mysqlUserRepo.rh, uid)
+	user, err := cache.ReJSONGet(mysqlUserRepo.rh, uid)
 	if err != nil {
 		fmt.Println("fetch from db")
 		err = mysqlUserRepo.DB.Debug().Model(domain.User{}).Where("id = ?", uid).Take(&user).Error
@@ -131,7 +113,7 @@ func (mysqlUserRepo *mysqlUserRepository) GetUserByID(uid uint64) (*domain.User,
 		}
 
 		// Update Redis
-		cache.ReJsonSet(mysqlUserRepo.rh, uid, user)
+		cache.ReJSONSet(mysqlUserRepo.rh, uid, user)
 	}
 
 	return user, err
@@ -153,11 +135,6 @@ func (mysqlUserRepo *mysqlUserRepository) GetAllUsers() (*[]domain.User, error) 
 // Hash will hash the user's password
 func Hash(password string) ([]byte, error) {
 	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-}
-
-// VerifyPassword will check if the user's password matched with the hashed password
-func VerifyPassword(hashedPassword, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
 // BeforeSave will hash the password before creating/updating a user

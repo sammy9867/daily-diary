@@ -6,7 +6,6 @@ import (
 
 // UserUseCase represents the users usecase
 type UserUseCase interface {
-	SignIn(email, password string) (string, error)
 	CreateUser(*domain.User) (*domain.User, error)
 	UpdateUser(uint64, *domain.User) (*domain.User, error)
 	DeleteUser(uint64) (int64, error)
