@@ -5,7 +5,12 @@ Daily Diary is a RESTful backend server implemented in Golang using Clean Archit
 The following instructions will help you to get a copy of the project up and running on your local machine for development and testing purposes.
 
 ### Prerequisites
-* Make sure you have MySQL installed on your local machine. You can download it from  [here](https://dev.mysql.com/downloads/installer/).
+* Make sure you have MySQL and Redis with ReJSON installed on your local machine.
+* You can download MySQL from [here](https://dev.mysql.com/downloads/installer/) and Redis from [here](https://redis.io/download).
+* If you're using Windows, you need to have Docker installed on your local machine in order to run Redis With ReJSON. Paste the following on the command line to install Redis with ReJSON.
+```
+docker run -p 6379:6379 --name redis-redisjson redislabs/rejson:latest
+```
 
 ### Installing
 * To clone this repository, you need to have [GIT](https://git-scm.com) installed on your local machine.
@@ -47,7 +52,6 @@ go run main.go
 ```
 go test --run TestName
 ```
-
 
 ## Contributing
 All pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
