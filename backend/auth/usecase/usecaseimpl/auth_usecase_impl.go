@@ -25,3 +25,8 @@ func (authUC *authUsecase) Logout(uuid string) (int64, error) {
 	deleted, err := authUC.authRepo.Logout(uuid)
 	return deleted, err
 }
+
+func (authUC *authUsecase) Refresh(refreshUUID string) (*domain.TokenDetail, error) {
+	tokenDetail, err := authUC.authRepo.Refresh(refreshUUID)
+	return tokenDetail, err
+}

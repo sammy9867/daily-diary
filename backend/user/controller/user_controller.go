@@ -91,18 +91,22 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authDetails, err := token.ExtractTokenMetaData(r)
+	fmt.Println(authDetails)
 	if err != nil {
+		fmt.Println(1, err)
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
 	}
 
 	userID, err := token.FetchAuthDetails(authDetails, uc.pool)
 	if err != nil {
+		fmt.Println(2, err)
 		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
 		return
 	}
 
 	if userID != uint64(uid) {
+		fmt.Println(3, err)
 		encode.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
 		return
 	}

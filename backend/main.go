@@ -87,7 +87,7 @@ func run() {
 	entryUseCase := _entryUseCase.NewEntryUseCase(entryRepo)
 
 	router := mux.NewRouter()
-	_authController.NewAuthController(router, cachePool, authUseCase)
+	_authController.NewAuthController(router, authUseCase)
 	_userController.NewUserController(router, cachePool, userUseCase)
 	_entryController.NewEntryController(router, cachePool, entryUseCase)
 

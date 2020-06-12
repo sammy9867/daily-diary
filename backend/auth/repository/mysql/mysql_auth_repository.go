@@ -58,6 +58,16 @@ func (mysqlAuthRepo *mysqlAuthRepository) Logout(uuid string) (int64, error) {
 	return deleted, nil
 }
 
+func (mysqlAuthRepo *mysqlAuthRepository) Refresh(refreshUUID string) (*domain.TokenDetail, error) {
+
+	tokenDetail, err := token.RefreshToken(refreshUUID, mysqlAuthRepo.pool)
+	if err != nil {
+		return nil, err
+	}
+
+	return tokenDetail, nil
+}
+
 // VerifyPassword will check if the user's password matched with the hashed password
 func VerifyPassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))

@@ -41,7 +41,7 @@ func CreateToken(userID uint64) (*domain.TokenDetail, error) {
 	refreshTokenClaims["refresh_uuid"] = td.RefreshUUID
 	refreshTokenClaims["user_id"] = userID
 	refreshTokenClaims["exp"] = td.ReftokenExpiresAt
-	retoken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessTokenClaims)
+	retoken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshTokenClaims)
 	td.RefreshToken, err = retoken.SignedString([]byte(os.Getenv("REFRESH_SECRET")))
 	if err != nil {
 		return nil, err
@@ -84,6 +84,7 @@ func ValidateToken(r *http.Request) error {
 		}
 		return []byte(os.Getenv("ACCESS_SECRET")), nil
 	})
+
 	if err != nil {
 		return err
 	}
@@ -109,7 +110,6 @@ func ExtractToken(r *http.Request) string {
 
 // ExtractTokenMetaData will extract the authenication details that contain accessUUID and userID
 func ExtractTokenMetaData(r *http.Request) (*domain.AuthDetail, error) {
-
 	tokenString := ExtractToken(r)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -140,7 +140,6 @@ func ExtractTokenMetaData(r *http.Request) (*domain.AuthDetail, error) {
 
 // FetchAuthDetails fetches authentication details
 func FetchAuthDetails(authDetail *domain.AuthDetail, pool *redis.Pool) (uint64, error) {
-
 	conn := pool.Get()
 	defer conn.Close()
 
@@ -164,4 +163,53 @@ func DeleteAuth(uuid string, pool *redis.Pool) (int64, error) {
 	}
 
 	return deleted, nil
+}
+
+// RefreshToken will delete the previous refresh token and generate a new pair of access and refresh tokens
+func RefreshToken(refreshToken string, pool *redis.Pool) (*domain.TokenDetail, error) {
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(os.Getenv("REFRESH_SECRET")), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if ok && token.Valid {
+		refreshUUID, ok := claims["refresh_uuid"].(string)
+		if !ok {
+			return nil, err
+		}
+
+		uid, err := strconv.ParseUint(fmt.Sprintf("%.0f", claims["user_id"]), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		// Delete the previous refresh token
+		deleted, err := DeleteAuth(refreshUUID, pool)
+		if err != nil || deleted == 0 {
+			return nil, err
+		}
+
+		// Generate a new pair of access and refresh tokens
+		tokenDetails, err := CreateToken(uid)
+		if err != nil {
+			return nil, err
+		}
+
+		// Saving the new pair in redis
+		err = SaveTokenMetaData(uid, tokenDetails, pool)
+		if err != nil {
+			return nil, err
+		}
+
+		return tokenDetails, nil
+	}
+
+	return nil, err
 }
