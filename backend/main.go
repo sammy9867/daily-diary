@@ -83,7 +83,7 @@ func run() {
 	userRepo := _userRepo.NewMysqlUserRepository(DB, rh)
 	userUseCase := _userUseCase.NewUserUseCase(userRepo)
 
-	entryRepo := _entryRepo.NewMysqlEntryRepository(DB)
+	entryRepo := _entryRepo.NewMysqlEntryRepository(DB, rh)
 	entryUseCase := _entryUseCase.NewEntryUseCase(entryRepo)
 
 	router := mux.NewRouter()

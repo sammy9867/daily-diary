@@ -5,21 +5,25 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql" //mysql driver
 	"github.com/joho/godotenv"
+	"github.com/nitishm/go-rejson"
 
 	"github.com/go-playground/assert/v2"
 	"github.com/sammy9867/daily-diary/backend/domain"
 	_entryRepo "github.com/sammy9867/daily-diary/backend/entry/repository/mysql"
 )
 
-type DatabaseConnection struct {
-	DB *gorm.DB
+type mockDatabaseConnection struct {
+	DB   *gorm.DB
+	pool *redis.Pool
 }
 
-var dbConn = DatabaseConnection{}
+var dbConn = mockDatabaseConnection{}
 
 func TestCreateEntry(t *testing.T) {
 
@@ -44,7 +48,18 @@ func TestCreateEntry(t *testing.T) {
 		OwnerID:     user.ID,
 	}
 
-	savedEntry, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).CreateEntry(&entry)
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	savedEntry, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).CreateEntry(&entry)
 	if err != nil {
 		t.Errorf("Error while saving the entry: %v\n", err)
 		return
@@ -92,7 +107,25 @@ func TestUpdateEntry(t *testing.T) {
 		OwnerID:     entry.OwnerID,
 	}
 
-	updatedEntry, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).UpdateEntry(entryUpdate.ID, &entryUpdate)
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	// Updating the cache
+	_, err = _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).GetEntryOfUserByID(entryUpdate.ID, user.ID)
+	if err != nil {
+		t.Errorf("Error while finding the entry: %v\n", err)
+		return
+	}
+
+	updatedEntry, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).UpdateEntry(entryUpdate.ID, &entryUpdate)
 	if err != nil {
 		t.Errorf("Error while updating the entry: %v\n", err)
 		return
@@ -133,7 +166,25 @@ func TestDeleteEntryWithoutImage(t *testing.T) {
 		log.Fatalf("Error saving the entry without image: %v\n", err)
 	}
 
-	isDeletedWithoutImage, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).DeleteEntry(entryWithoutImage.ID, user.ID)
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	// Updating the cache
+	_, err = _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).GetEntryOfUserByID(entryWithoutImage.ID, user.ID)
+	if err != nil {
+		t.Errorf("Error while finding the entry: %v\n", err)
+		return
+	}
+
+	isDeletedWithoutImage, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).DeleteEntry(entryWithoutImage.ID, user.ID)
 	if err != nil {
 		t.Errorf("Error while deleting the entry: %v\n", err)
 		return
@@ -177,7 +228,25 @@ func TestDeleteEntryWithImage(t *testing.T) {
 		log.Fatalf("Error saving the entry with image: %v\n", err)
 	}
 
-	isDeletedWithImage, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).DeleteEntry(entryWithImage.ID, user.ID)
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	// Updating the cache
+	_, err = _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).GetEntryOfUserByID(entryWithImage.ID, user.ID)
+	if err != nil {
+		t.Errorf("Error while finding the entry: %v\n", err)
+		return
+	}
+
+	isDeletedWithImage, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).DeleteEntry(entryWithImage.ID, user.ID)
 	if err != nil {
 		t.Errorf("Error while deleting the entry: %v\n", err)
 		return
@@ -214,7 +283,18 @@ func TestGetEntryOfUserByID(t *testing.T) {
 		log.Fatalf("Error saving the entry: %v\n", err)
 	}
 
-	entryFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).GetEntryOfUserByID(entry.ID, user.ID)
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	entryFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).GetEntryOfUserByID(entry.ID, user.ID)
 	if err != nil {
 		t.Errorf("Error while finding the entry: %v\n", err)
 		return
@@ -266,7 +346,18 @@ func TestGetAllEntriesOfUserWithoutImage(t *testing.T) {
 		}
 	}
 
-	entriesFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).GetAllEntriesOfUser(user.ID, 5, 1, 2018, 2020, "-title")
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	entriesFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).GetAllEntriesOfUser(user.ID, 5, 1, 2018, 2020, "-title")
 	if err != nil {
 		t.Errorf("Error while finding users: %v\n", err)
 		return
@@ -339,7 +430,18 @@ func TestGetAllEntriesOfUserWithImage(t *testing.T) {
 		}
 	}
 
-	entriesFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB).GetAllEntriesOfUser(user.ID, 5, 1, 2018, 2020, "-title")
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	entriesFound, err := _entryRepo.NewMysqlEntryRepository(dbConn.DB, rh).GetAllEntriesOfUser(user.ID, 5, 1, 2018, 2020, "-title")
 	if err != nil {
 		t.Errorf("Error while finding users: %v\n", err)
 		return
@@ -359,14 +461,17 @@ func mockDB() {
 	dbConn.InitializeDBTest(os.Getenv("DB_DRIVER_TEST"), os.Getenv("DB_USER_TEST"), os.Getenv("DB_PASSWORD_TEST"), os.Getenv("DB_PORT_TEST"),
 		os.Getenv("DB_HOST_TEST"), os.Getenv("DB_NAME_TEST"))
 
+	dbConn.InitializeRedisCacheTest(10, "localhost:6379")
+
 	if err := dbConn.DB.Raw("CALL TrucateTables()").Scan(&domain.EntryImage{}).Scan(&domain.Entry{}).Scan(&domain.User{}).Error; err != nil {
 		log.Printf("Error truncating tables: %v\n", err)
+
 	}
 
 	log.Printf("Successfully refreshed table")
 }
 
-func (dbConnec *DatabaseConnection) InitializeDBTest(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) {
+func (dbConnec *mockDatabaseConnection) InitializeDBTest(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) {
 
 	var err error
 
@@ -379,5 +484,16 @@ func (dbConnec *DatabaseConnection) InitializeDBTest(Dbdriver, DbUser, DbPasswor
 		} else {
 			fmt.Printf("We are connected to the %s database\n", Dbdriver)
 		}
+	}
+}
+
+func (dbConnec *mockDatabaseConnection) InitializeRedisCacheTest(maxIdleConn int, port string) {
+
+	dbConnec.pool = &redis.Pool{
+		MaxIdle:     maxIdleConn,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", port)
+		},
 	}
 }

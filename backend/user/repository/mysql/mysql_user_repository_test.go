@@ -19,8 +19,8 @@ import (
 )
 
 type mockDatabaseConnection struct {
-	DB *gorm.DB
-	rh *rejson.Handler
+	DB   *gorm.DB
+	pool *redis.Pool
 }
 
 var dbConn = mockDatabaseConnection{}
@@ -35,7 +35,18 @@ func TestCreateUser(t *testing.T) {
 		Password: "password",
 	}
 
-	savedUser, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).CreateUser(&newUser)
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	savedUser, err := _userRepo.NewMysqlUserRepository(dbConn.DB, rh).CreateUser(&newUser)
 	if err != nil {
 		t.Errorf("Error saving the user: %v\n", err)
 		return
@@ -69,7 +80,25 @@ func TestUpdateUser(t *testing.T) {
 		Password: "password",
 	}
 
-	updatedUser, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).UpdateUser(userUpdate.ID, &userUpdate)
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	// Update Cache
+	_, err = _userRepo.NewMysqlUserRepository(dbConn.DB, rh).GetUserByID(user.ID)
+	if err != nil {
+		t.Errorf("Error while finding the user: %v\n", err)
+		return
+	}
+
+	updatedUser, err := _userRepo.NewMysqlUserRepository(dbConn.DB, rh).UpdateUser(userUpdate.ID, &userUpdate)
 	if err != nil {
 		t.Errorf("Error while updating the user: %v\n", err)
 		return
@@ -96,7 +125,25 @@ func TestDeleteUser(t *testing.T) {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	isDeleted, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).DeleteUser(user.ID)
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	// Update Cache
+	_, err = _userRepo.NewMysqlUserRepository(dbConn.DB, rh).GetUserByID(user.ID)
+	if err != nil {
+		t.Errorf("Error while finding the user: %v\n", err)
+		return
+	}
+
+	isDeleted, err := _userRepo.NewMysqlUserRepository(dbConn.DB, rh).DeleteUser(user.ID)
 	if err != nil {
 		t.Errorf("Error while deleting the user: %v\n", err)
 		return
@@ -120,7 +167,18 @@ func TestGetUserByID(t *testing.T) {
 		log.Fatalf("Error saving the user: %v\n", err)
 	}
 
-	userFound, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).GetUserByID(user.ID)
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	userFound, err := _userRepo.NewMysqlUserRepository(dbConn.DB, rh).GetUserByID(user.ID)
 	if err != nil {
 		t.Errorf("Error while finding the user: %v\n", err)
 		return
@@ -157,7 +215,18 @@ func TestGetAllUsers(t *testing.T) {
 		}
 	}
 
-	usersFound, err := _userRepo.NewMysqlUserRepository(dbConn.DB, dbConn.rh).GetAllUsers()
+	conn := dbConn.pool.Get()
+	defer conn.Close()
+
+	_, err := conn.Do("FLUSHALL")
+	if err != nil {
+		fmt.Printf("Could not flush data from redis server")
+	}
+
+	rh := rejson.NewReJSONHandler()
+	rh.SetRedigoClient(conn)
+
+	usersFound, err := _userRepo.NewMysqlUserRepository(dbConn.DB, rh).GetAllUsers()
 	if err != nil {
 		t.Errorf("Error while finding users: %v\n", err)
 		return
@@ -205,22 +274,11 @@ func (dbConnec *mockDatabaseConnection) InitializeDBTest(Dbdriver, DbUser, DbPas
 
 func (dbConnec *mockDatabaseConnection) InitializeRedisCacheTest(maxIdleConn int, port string) {
 
-	pool := &redis.Pool{
+	dbConnec.pool = &redis.Pool{
 		MaxIdle:     maxIdleConn,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
 			return redis.Dial("tcp", port)
 		},
 	}
-
-	conn := pool.Get()
-	defer conn.Close()
-	_, err := conn.Do("FLUSHALL")
-	if err != nil {
-		fmt.Printf("Could not flush data from redis server")
-	}
-
-	dbConnec.rh = rejson.NewReJSONHandler()
-	dbConnec.rh.SetRedigoClient(conn)
-
 }

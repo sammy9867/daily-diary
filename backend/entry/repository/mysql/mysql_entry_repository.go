@@ -2,23 +2,27 @@ package mysql
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/nitishm/go-rejson"
 	"github.com/sammy9867/daily-diary/backend/domain"
 	"github.com/sammy9867/daily-diary/backend/entry/repository"
+	"github.com/sammy9867/daily-diary/backend/entry/repository/cache"
 )
 
 type mysqlEntryRepository struct {
 	DB *gorm.DB
+	rh *rejson.Handler
 }
 
 // NewMysqlEntryRepository will create an object that will implement EntryRepository interface
 // Note: Need to implement all the methods from the interface
-func NewMysqlEntryRepository(DB *gorm.DB) repository.EntryRepository {
-	return &mysqlEntryRepository{DB}
+func NewMysqlEntryRepository(DB *gorm.DB, rh *rejson.Handler) repository.EntryRepository {
+	return &mysqlEntryRepository{DB, rh}
 }
 
 func (mysqlEntryRepo *mysqlEntryRepository) CreateEntry(entry *domain.Entry) (*domain.Entry, error) {
@@ -35,6 +39,12 @@ func (mysqlEntryRepo *mysqlEntryRepository) CreateEntry(entry *domain.Entry) (*d
 func (mysqlEntryRepo *mysqlEntryRepository) UpdateEntry(eid uint64, entry *domain.Entry) (*domain.Entry, error) {
 	var err error
 
+	// Update Cache
+	entryCache, err := cache.ReJSONGet(mysqlEntryRepo.rh, eid)
+	if err != nil {
+		return &domain.Entry{}, err
+	}
+
 	if entry.EntryImages != nil {
 
 		for i := range entry.EntryImages {
@@ -49,6 +59,8 @@ func (mysqlEntryRepo *mysqlEntryRepository) UpdateEntry(eid uint64, entry *domai
 				return &domain.Entry{}, err
 			}
 
+			entryCache.EntryImages[i].URL = entry.EntryImages[i].URL
+
 		}
 
 	}
@@ -60,9 +72,18 @@ func (mysqlEntryRepo *mysqlEntryRepository) UpdateEntry(eid uint64, entry *domai
 			"updated_at":  time.Now(),
 		},
 	)
+
 	if db.Error != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return &domain.Entry{}, errors.New("Entry Not Found")
+		}
 		return &domain.Entry{}, err
 	}
+
+	entryCache.Title = entry.Title
+	entryCache.Description = entry.Description
+	entryCache.UpdatedAt = time.Now()
+	cache.ReJSONSet(mysqlEntryRepo.rh, eid, entryCache)
 
 	return entry, nil
 }
@@ -78,6 +99,13 @@ func (mysqlEntryRepo *mysqlEntryRepository) DeleteEntry(eid uint64, uid uint64) 
 		return 0, db.Error
 	}
 
+	// Delete Cache
+	_, err := cache.ReJSONGet(mysqlEntryRepo.rh, eid)
+	if err != nil {
+		return 0, err
+	}
+	cache.ReJSONDel(mysqlEntryRepo.rh, eid)
+
 	return db.RowsAffected, nil
 }
 
@@ -85,21 +113,33 @@ func (mysqlEntryRepo *mysqlEntryRepository) GetEntryOfUserByID(eid uint64, uid u
 
 	defer timeTrack(time.Now(), "GetEntryOfUserByID")
 	var err error
-	entry := domain.Entry{}
-	err = mysqlEntryRepo.DB.Debug().Model(&domain.Entry{}).Where("id = ? and owner_id = ?", eid, uid).Take(&entry).Error
-	if err != nil {
-		return &domain.Entry{}, err
-	}
 
-	if entry.ID != 0 {
-		entryImages := []domain.EntryImage{}
-		if err := mysqlEntryRepo.DB.Raw("CALL GetAllEntryImagesOfEntry(?)", entry.ID).Scan(&entryImages).Error; err != nil {
+	// Check whether data exists in Redis
+	entry, err := cache.ReJSONGet(mysqlEntryRepo.rh, eid)
+	if err != nil {
+		fmt.Println("fetch from db")
+		err = mysqlEntryRepo.DB.Debug().Model(&domain.Entry{}).Where("id = ? and owner_id = ?", eid, uid).Take(&entry).Error
+		if err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				return &domain.Entry{}, errors.New("Entry Not Found")
+			}
 			return &domain.Entry{}, err
 		}
-		entry.EntryImages = entryImages
 
+		if entry.ID != 0 {
+			entryImages := []domain.EntryImage{}
+			if err := mysqlEntryRepo.DB.Raw("CALL GetAllEntryImagesOfEntry(?)", entry.ID).Scan(&entryImages).Error; err != nil {
+				return &domain.Entry{}, err
+			}
+			entry.EntryImages = entryImages
+
+		}
+
+		// Update Redis
+		cache.ReJSONSet(mysqlEntryRepo.rh, eid, entry)
 	}
-	return &entry, nil
+
+	return entry, nil
 }
 
 func (mysqlEntryRepo *mysqlEntryRepository) GetAllEntriesOfUser(uid uint64, limit, pageNumber, year1, year2 uint32, sort string) (*[]domain.Entry, error) {

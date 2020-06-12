@@ -57,6 +57,9 @@ func (mysqlUserRepo *mysqlUserRepository) UpdateUser(uid uint64, u *domain.User)
 	)
 
 	if db.Error != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return &domain.User{}, errors.New("User Not Found")
+		}
 		return &domain.User{}, db.Error
 	}
 
@@ -83,6 +86,9 @@ func (mysqlUserRepo *mysqlUserRepository) DeleteUser(uid uint64) (int64, error) 
 	db := mysqlUserRepo.DB.Debug().Model(&domain.User{}).Where("id = ?", uid).Take(&domain.User{}).Delete(&domain.User{})
 
 	if db.Error != nil {
+		if gorm.IsRecordNotFoundError(db.Error) {
+			return 0, errors.New("User not found")
+		}
 		return 0, db.Error
 	}
 
@@ -106,10 +112,10 @@ func (mysqlUserRepo *mysqlUserRepository) GetUserByID(uid uint64) (*domain.User,
 		fmt.Println("fetch from db")
 		err = mysqlUserRepo.DB.Debug().Model(domain.User{}).Where("id = ?", uid).Take(&user).Error
 		if err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				return &domain.User{}, errors.New("User Not Found")
+			}
 			return &domain.User{}, err
-		}
-		if gorm.IsRecordNotFoundError(err) {
-			return &domain.User{}, errors.New("User Not Found")
 		}
 
 		// Update Redis
