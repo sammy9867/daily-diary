@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql" // mysql driver
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/joho/godotenv"
 	"github.com/nitishm/go-rejson"
 
@@ -33,10 +34,11 @@ func Initialize(Dbdriver, DbUser, DbPassword, DbPort, DbHost, DbName string) (DB
 
 	if Dbdriver == "mysql" {
 		DBURL := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", DbUser, DbPassword, DbHost, DbPort, DbName)
+		fmt.Println(DBURL)
 		DB, err = gorm.Open(Dbdriver, DBURL)
 		if err != nil {
-			fmt.Printf("Cannot connect to %s database", Dbdriver)
-			log.Fatal("This is the error:", err)
+			fmt.Println("Cannot connect to database")
+			log.Fatal("Error: ", err)
 		} else {
 			fmt.Printf("We are connected to the %s database\n", Dbdriver)
 		}
@@ -91,8 +93,8 @@ func run() {
 	_userController.NewUserController(router, cachePool, userUseCase)
 	_entryController.NewEntryController(router, cachePool, entryUseCase)
 
-	fmt.Println("Listening to port 8080")
-	log.Fatal(http.ListenAndServe("localhost:8080", router))
+	fmt.Println("Listening to port 8081")
+	log.Fatal(http.ListenAndServe("localhost:8081", router))
 
 }
 

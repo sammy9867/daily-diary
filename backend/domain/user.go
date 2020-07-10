@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"html"
+	"strings"
 	"time"
 )
 
@@ -12,4 +14,13 @@ type User struct {
 	Password  string    `gorm:"size:100;not null;" json:"password"  redis:"password"`
 	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at" redis:"created_at"`
 	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at" redis:"updated_at"`
+}
+
+// Initialize is used to initialize the user before creating/login/updating
+func (u *User) Initialize() {
+	u.ID = 0
+	u.Username = html.EscapeString(strings.TrimSpace(u.Username))
+	u.Email = html.EscapeString(strings.TrimSpace(u.Email))
+	u.CreatedAt = time.Now()
+	u.UpdatedAt = time.Now()
 }

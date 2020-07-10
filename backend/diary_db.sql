@@ -1,3 +1,6 @@
+CREATE USER 'sam'@'localhost' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON *.* TO 'sam'@'localhost';
+
 DROP DATABASE IF EXISTS diary_db;
 CREATE DATABASE diary_db;
 USE diary_db;

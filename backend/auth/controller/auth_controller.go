@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -25,9 +26,9 @@ func NewAuthController(router *mux.Router, us usecase.AuthUseCase) {
 	controller := &AuthController{
 		authUC: us,
 	}
-	router.HandleFunc("/login", middleware.SetMiddlewareJSON(controller.Login)).Methods("POST")
-	router.HandleFunc("/logout", middleware.SetMiddlewareJSON(middleware.SetMiddlewareAuthentication(controller.Logout))).Methods("POST")
-	router.HandleFunc("/token/refresh", middleware.SetMiddlewareJSON(controller.RefreshToken)).Methods("POST")
+	router.HandleFunc("/auth/login", middleware.SetMiddlewareJSON(controller.Login)).Methods("POST")
+	router.HandleFunc("/auth/logout", middleware.SetMiddlewareJSON(middleware.SetMiddlewareAuthentication(controller.Logout))).Methods("POST")
+	router.HandleFunc("/auth/token/refresh", middleware.SetMiddlewareJSON(controller.RefreshToken)).Methods("POST")
 }
 
 // Login endpoint
@@ -44,7 +45,7 @@ func (ac *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	format.Initialize(&user)
+	user.Initialize()
 	err = format.Validate(&user, "login")
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -53,8 +54,8 @@ func (ac *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 
 	tokenDetail, err := ac.authUC.Login(user.Email, user.Password)
 	if err != nil {
-		formattedError := format.FormatError(err.Error())
-		encode.ERROR(w, http.StatusUnprocessableEntity, formattedError)
+		encode.ERROR(w, http.StatusUnauthorized, errors.New("Incorrect Email or Password"))
+		fmt.Println("Login", err)
 		return
 	}
 
@@ -72,7 +73,8 @@ func (ac *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 
 	deleted, err := ac.authUC.Logout(authDetails.AccessUUID)
 	if err != nil || deleted == 0 {
-		encode.ERROR(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+		encode.ERROR(w, http.StatusInternalServerError, errors.New("Error while logging out"))
+		fmt.Println("Logout", err)
 		return
 	}
 
@@ -97,8 +99,8 @@ func (ac *AuthController) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	refreshToken := refreshTokenMap["refresh_token"]
 	tokenDetail, err := ac.authUC.Refresh(refreshToken)
 	if err != nil {
-		formattedError := format.FormatError(err.Error())
-		encode.ERROR(w, http.StatusUnprocessableEntity, formattedError)
+		encode.ERROR(w, http.StatusInternalServerError, errors.New("Error while generating refresh token"))
+		fmt.Println("RefreshToken", err)
 		return
 	}
 

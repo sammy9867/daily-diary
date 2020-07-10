@@ -54,7 +54,7 @@ func (ec *EntryController) CreateEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	format.Initialize(&entry)
+	entry.Initialize()
 	err = format.Validate(&entry)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -82,7 +82,8 @@ func (ec *EntryController) CreateEntry(w http.ResponseWriter, r *http.Request) {
 
 	createdEntry, err := ec.entryUC.CreateEntry(&entry)
 	if err != nil {
-		encode.ERROR(w, http.StatusInternalServerError, err)
+		encode.ERROR(w, http.StatusInternalServerError, errors.New("Error while creating an entry"))
+		fmt.Println("CreateEntry", err)
 		return
 	}
 
@@ -118,7 +119,7 @@ func (ec *EntryController) UpdateEntry(w http.ResponseWriter, r *http.Request) {
 	// Check if the entry exist
 	entry, err := ec.entryUC.GetEntryOfUserByID(eid, uid)
 	if err != nil {
-		encode.ERROR(w, http.StatusNotFound, errors.New("Unauthorized"))
+		encode.ERROR(w, http.StatusNotFound, errors.New("Entry doesn't exist"))
 		return
 	}
 
@@ -147,7 +148,7 @@ func (ec *EntryController) UpdateEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	format.Initialize(&entryUpdate)
+	entryUpdate.Initialize()
 	err = format.Validate(&entryUpdate)
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -158,9 +159,9 @@ func (ec *EntryController) UpdateEntry(w http.ResponseWriter, r *http.Request) {
 	entryUpdate.ID = entry.ID
 
 	entryUpdated, err := ec.entryUC.UpdateEntry(eid, &entryUpdate)
-
 	if err != nil {
-		encode.ERROR(w, http.StatusInternalServerError, err)
+		encode.ERROR(w, http.StatusInternalServerError, errors.New("Error while updating the entry"))
+		fmt.Println("UpdateEntry", err)
 		return
 	}
 	encode.JSON(w, http.StatusOK, entryUpdated)
@@ -194,7 +195,7 @@ func (ec *EntryController) DeleteEntry(w http.ResponseWriter, r *http.Request) {
 	// Check if the entry exist
 	entry, err := ec.entryUC.GetEntryOfUserByID(eid, uid)
 	if err != nil {
-		encode.ERROR(w, http.StatusNotFound, errors.New("Unauthorized"))
+		encode.ERROR(w, http.StatusNotFound, errors.New("Entry doesn't exist"))
 		return
 	}
 
@@ -207,6 +208,7 @@ func (ec *EntryController) DeleteEntry(w http.ResponseWriter, r *http.Request) {
 	_, err = ec.entryUC.DeleteEntry(eid, uid)
 	if err != nil {
 		encode.ERROR(w, http.StatusBadRequest, err)
+		fmt.Println("DeleteEntry", err)
 		return
 	}
 
@@ -240,6 +242,7 @@ func (ec *EntryController) GetEntryOfUserByID(w http.ResponseWriter, r *http.Req
 	entry, err := ec.entryUC.GetEntryOfUserByID(eid, uid)
 	if err != nil {
 		encode.ERROR(w, http.StatusInternalServerError, err)
+		fmt.Println("GetEntryOfUserByID", err)
 		return
 	}
 
@@ -299,6 +302,7 @@ func (ec *EntryController) GetAllEntriesOfUser(w http.ResponseWriter, r *http.Re
 	entries, err := ec.entryUC.GetAllEntriesOfUser(uid, uint32(limit), uint32(pageNumber), uint32(yearFilter1), uint32(yearFilter2), sort)
 	if err != nil {
 		encode.ERROR(w, http.StatusInternalServerError, err)
+		fmt.Println("GetAllEntriesOfUser", err)
 		return
 	}
 	encode.JSON(w, http.StatusOK, entries)

@@ -51,7 +51,7 @@ func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
 		return
 	}
-	format.Initialize(&user)
+	user.Initialize()
 	err = format.Validate(&user, "")
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -60,8 +60,9 @@ func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	createdUser, err := uc.userUC.CreateUser(&user)
 	if err != nil {
-		formattedError := format.FormatError(err.Error())
-		encode.ERROR(w, http.StatusInternalServerError, formattedError)
+		checkError := format.CheckError(err.Error())
+		encode.ERROR(w, http.StatusConflict, checkError)
+		fmt.Println("CreateUser", checkError)
 		return
 	}
 
@@ -111,7 +112,7 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	format.Initialize(&user)
+	user.Initialize()
 	err = format.Validate(&user, "update")
 	if err != nil {
 		encode.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -120,7 +121,8 @@ func (uc *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	updatedUser, err := uc.userUC.UpdateUser(uint64(uid), &user)
 	if err != nil {
-		encode.ERROR(w, http.StatusInternalServerError, err)
+		encode.ERROR(w, http.StatusInternalServerError, errors.New("Error while updating the user"))
+		fmt.Println("UpdateUser", err)
 		return
 	}
 	encode.JSON(w, http.StatusOK, updatedUser)
@@ -156,7 +158,8 @@ func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	_, err = uc.userUC.DeleteUser(uint64(uid))
 	if err != nil {
-		encode.ERROR(w, http.StatusInternalServerError, err)
+		encode.ERROR(w, http.StatusInternalServerError, errors.New("Error while deleting the user"))
+		fmt.Println("DeleteUser", err)
 		return
 	}
 	w.Header().Set("Entity", fmt.Sprintf("%d", uid))
@@ -174,7 +177,8 @@ func (uc *UserController) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	}
 	userGotten, err := uc.userUC.GetUserByID(uint64(uid))
 	if err != nil {
-		encode.ERROR(w, http.StatusBadRequest, err)
+		encode.ERROR(w, http.StatusInternalServerError, err)
+		fmt.Println("GetUserByID", err)
 		return
 	}
 	encode.JSON(w, http.StatusOK, userGotten)
@@ -186,6 +190,7 @@ func (uc *UserController) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := uc.userUC.GetAllUsers()
 	if err != nil {
 		encode.ERROR(w, http.StatusInternalServerError, err)
+		fmt.Println("GetAllUsers", err)
 		return
 	}
 	encode.JSON(w, http.StatusOK, users)
